@@ -128,13 +128,13 @@ const ROUTE_COLORS = [
 ]
 
 // ── Shared button style helper ───────────────────────────────────────────────
-function cardBtnStyle(color: string): CSSProperties {
+function cardBtnStyle(): CSSProperties {
   return {
     borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
     padding: '0.45rem 0', justifyContent: 'center',
     display: 'flex', alignItems: 'center', gap: '0.35rem',
-    background: `${color}18`, color: color,
-    border: `1px solid ${color}55`, cursor: 'pointer',
+    background: 'hsl(var(--primary) / 9%)', color: 'hsl(var(--primary))',
+    border: '1px solid hsl(var(--primary) / 30%)', cursor: 'pointer',
   }
 }
 
@@ -968,75 +968,83 @@ export function RouteList() {
         {/* ── Card grid ── */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', justifyContent: 'flex-start' }}>
         {filteredRoutes.map((route, routeIndex) => {
-          const markerColor = route.color || ROUTE_COLORS[routeIndex % ROUTE_COLORS.length]
           const cardPanel = getCardPanel(route.id)
-          const ep = editPanelState[route.id] ?? { name: route.name, code: route.code, shift: route.shift, color: route.color || markerColor }
+          const ep = editPanelState[route.id] ?? { name: route.name, code: route.code, shift: route.shift, color: route.color || 'hsl(var(--primary))' }
           return (
           <div key={route.id}>
-            {/* ── Route Card ── liquid */}
-            <div style={{ width: 340, height: 520, borderRadius: 24, overflow: 'hidden', position: 'relative', background: 'hsl(var(--card))', boxShadow: `0 4px 18px ${markerColor}18, 0 1px 4px rgba(0,0,0,0.05)`, border: `1.5px solid ${markerColor}40` }}>
-              {/* ── Liquid blobs (SVG, position:absolute) ── */}
-              <svg viewBox="0 0 340 520" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0 }} xmlns="http://www.w3.org/2000/svg">
-                {/* main blob top-left */}
-                <ellipse cx="60" cy="70" rx="140" ry="120" fill={`${markerColor}28`} transform="rotate(-20 60 70)" />
-                {/* secondary blob top-right */}
-                <ellipse cx="290" cy="40" rx="110" ry="100" fill={`${markerColor}1a`} transform="rotate(15 290 40)" />
-                {/* wave blob bottom */}
-                <path d="M0 340 Q85 290 170 330 Q255 370 340 310 L340 520 L0 520 Z" fill={`${markerColor}18`} />
-                {/* small accent circle */}
-                <circle cx="300" cy="180" r="55" fill={`${markerColor}12`} />
-              </svg>
-              {/* Sliding wrapper — sits above blobs */}
+            {/* ── Route Card ── */}
+            <div style={{ width: 340, height: 520, borderRadius: 22, overflow: 'hidden', position: 'relative', background: 'hsl(var(--card))', boxShadow: '0 8px 32px hsl(var(--primary) / 12%), 0 2px 8px rgba(0,0,0,0.07), 0 0 0 1.5px hsl(var(--primary) / 18%)', border: 'none' }}>
+              {/* Sliding wrapper */}
               <div style={{ position: 'relative', zIndex: 1, display: 'flex', width: 1020, height: '100%', transform: cardPanel.edit ? 'translateX(-680px)' : cardPanel.info ? 'translateX(-340px)' : 'translateX(0)', transition: 'transform 0.38s cubic-bezier(0.4,0,0.2,1)' }}>
 
                 {/* ── Panel 1: Main card ── */}
                 <div style={{ width: 340, flexShrink: 0, display: 'flex', flexDirection: 'column', height: 520 }}>
-                  {/* Body */}
-                  <div style={{ flex: 1, padding: '1.5rem 1.25rem 0', display: 'flex', flexDirection: 'column', gap: '0.9rem', overflow: 'hidden' }}>
 
-                    {/* Header: avatar + name */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                      <div style={{ width: 52, height: 52, borderRadius: '50%', background: `linear-gradient(135deg, ${markerColor}, ${markerColor}bb)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: `0 6px 20px ${markerColor}55` }}>
+                  {/* ── Colored header band ── */}
+                  <div style={{ position: 'relative', height: 138, background: 'linear-gradient(140deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 88%) 60%, hsl(var(--primary) / 62%) 100%)', overflow: 'hidden', flexShrink: 0 }}>
+                    {/* Decorative circles behind */}
+                    <div style={{ position: 'absolute', width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', top: -60, right: -40 }} />
+                    <div style={{ position: 'absolute', width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', bottom: -30, left: 20 }} />
+                    <div style={{ position: 'absolute', width: 60, height: 60, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', top: 10, right: 60 }} />
+
+                    {/* Header content */}
+                    <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'flex-start', gap: '0.85rem', padding: '1.1rem 1.2rem 0' }}>
+                      {/* Truck avatar */}
+                      <div style={{ width: 50, height: 50, borderRadius: 14, background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)', border: '1.5px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
                         <Truck style={{ width: 22, height: 22, color: '#fff' }} />
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <h3 style={{ margin: '0 0 0.2rem', fontSize: '1.1rem', fontWeight: 800, color: 'hsl(var(--foreground))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{route.name}</h3>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                          <span style={{ fontSize: '0.74rem', fontWeight: 700, fontFamily: 'monospace', background: `${markerColor}18`, color: markerColor, padding: '2px 8px', borderRadius: 6, border: `1px solid ${markerColor}33` }}>{route.code}</span>
-                          <span style={{ fontSize: '0.74rem', fontWeight: 700, background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))', padding: '2px 8px', borderRadius: 6, border: '1px solid hsl(var(--border))' }}>{route.shift}</span>
+                      {/* Name + badges */}
+                      <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
+                        <h3 style={{ margin: '0 0 0.35rem', fontSize: '1.05rem', fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>{route.name}</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700, fontFamily: 'monospace', background: 'rgba(255,255,255,0.22)', color: '#fff', padding: '2px 9px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.3)', backdropFilter: 'blur(4px)' }}>{route.code}</span>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700, background: 'rgba(0,0,0,0.18)', color: '#fff', padding: '2px 9px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.15)' }}>{route.shift}</span>
                           {pinnedIds.has(route.id) && <span style={{ fontSize: '0.65rem' }}>📌</span>}
                         </div>
                       </div>
-                      {/* stops bubble */}
-                      <div style={{ width: 46, height: 46, borderRadius: '50%', background: `${markerColor}14`, border: `2px solid ${markerColor}44`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <span style={{ fontSize: '1.05rem', fontWeight: 800, color: markerColor, lineHeight: 1 }}>{route.deliveryPoints.length}</span>
-                        <span style={{ fontSize: '0.55rem', fontWeight: 700, color: markerColor, opacity: 0.7, textTransform: 'uppercase' }}>stops</span>
+                      {/* Stops count pill */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.22)', backdropFilter: 'blur(6px)', border: '1.5px solid rgba(255,255,255,0.35)', borderRadius: 12, padding: '0.3rem 0.65rem', flexShrink: 0, minWidth: 44 }}>
+                        <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#fff', lineHeight: 1, textShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>{route.deliveryPoints.length}</span>
+                        <span style={{ fontSize: '0.5rem', fontWeight: 700, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>stops</span>
                       </div>
                     </div>
 
-                    {/* Liquid divider — wavy SVG line */}
-                    <svg viewBox="0 0 290 12" style={{ width: '100%', height: 12, display: 'block', overflow: 'visible' }}>
-                      <path d="M0 6 Q36 0 72 6 Q108 12 144 6 Q180 0 216 6 Q252 12 290 6" stroke={`${markerColor}55`} strokeWidth="2" fill="none" strokeLinecap="round" />
+                    {/* Bottom wave */}
+                    <svg viewBox="0 0 340 24" style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: 24 }} preserveAspectRatio="none">
+                      <path d="M0 24 L0 10 Q85 0 170 12 Q255 24 340 8 L340 24 Z" fill="hsl(var(--card))" />
                     </svg>
+                  </div>
+
+                  {/* ── Body ── */}
+                  <div style={{ flex: 1, padding: '0.6rem 1.2rem 0', display: 'flex', flexDirection: 'column', gap: '0.55rem', overflow: 'hidden' }}>
 
                     {/* Stops list */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      {route.deliveryPoints.slice(0, 4).map((pt, i) => {
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.42rem' }}>
+                      {route.deliveryPoints.slice(0, 5).map((pt, i) => {
                         const dtColor: Record<string, string> = { Daily: '#22c55e', Weekday: '#3b82f6', 'Alt 1': '#eab308', 'Alt 2': '#a855f7' }
-                        const dc = dtColor[pt.delivery] ?? markerColor
+                        const dc = dtColor[pt.delivery] ?? 'hsl(var(--primary))'
                         return (
-                          <div key={pt.code} style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', fontSize: '0.82rem', background: `${markerColor}09`, borderRadius: 10, padding: '0.4rem 0.7rem', border: `1px solid ${markerColor}18` }}>
-                            <span style={{ width: 20, height: 20, borderRadius: '50%', background: `linear-gradient(135deg, ${markerColor}, ${markerColor}99)`, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.62rem', fontWeight: 800, flexShrink: 0 }}>{i + 1}</span>
+                          <div key={pt.code} style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', fontSize: '0.81rem', background: 'hsl(var(--muted)/0.5)', borderRadius: 10, padding: '0.42rem 0.65rem', border: '1px solid hsl(var(--border)/0.6)', transition: 'background 0.15s' }}>
+                            <span style={{ width: 22, height: 22, borderRadius: 7, background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 60%))', color: 'hsl(var(--primary-foreground))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 800, flexShrink: 0, boxShadow: '0 2px 6px hsl(var(--primary) / 30%)' }}>{i + 1}</span>
                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, color: 'hsl(var(--foreground))', fontWeight: 600 }}>{pt.name}</span>
-                            <span style={{ width: 7, height: 7, borderRadius: '50%', background: dc, flexShrink: 0, boxShadow: `0 0 5px ${dc}99` }} />
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.62rem', fontWeight: 700, color: dc, background: `${dc}14`, padding: '1px 6px', borderRadius: 5, border: `1px solid ${dc}28`, flexShrink: 0 }}>
+                              <span style={{ width: 5, height: 5, borderRadius: '50%', background: dc, display: 'inline-block', boxShadow: `0 0 4px ${dc}` }} />
+                              {pt.delivery}
+                            </span>
                           </div>
                         )
                       })}
-                      {route.deliveryPoints.length > 4 && (
-                        <div style={{ fontSize: '0.74rem', color: 'hsl(var(--muted-foreground))', paddingLeft: 8, fontWeight: 500 }}>+ {route.deliveryPoints.length - 4} more stops</div>
+                      {route.deliveryPoints.length > 5 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', color: 'hsl(var(--muted-foreground))', paddingLeft: 6, fontWeight: 600 }}>
+                          <span style={{ width: 22, height: 22, borderRadius: 7, background: 'hsl(var(--primary) / 9%)', border: '1px dashed hsl(var(--primary) / 35%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: 'hsl(var(--primary))', fontWeight: 800 }}>+{route.deliveryPoints.length - 5}</span>
+                          more stops
+                        </div>
                       )}
                       {route.deliveryPoints.length === 0 && (
-                        <span style={{ fontSize: '0.78rem', color: 'hsl(var(--muted-foreground))', fontStyle: 'italic', paddingLeft: 4 }}>No delivery points yet</span>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '1.5rem 0', color: 'hsl(var(--muted-foreground))' }}>
+                          <MapPin style={{ width: 16, height: 16, opacity: 0.4 }} />
+                          <span style={{ fontSize: '0.78rem', fontStyle: 'italic' }}>No delivery points yet</span>
+                        </div>
                       )}
                     </div>
 
@@ -1047,9 +1055,9 @@ export function RouteList() {
                         route.deliveryPoints.reduce<Record<string, number>>((acc, p) => { acc[p.delivery] = (acc[p.delivery] ?? 0) + 1; return acc }, {})
                       )
                       return (
-                        <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginTop: 'auto', paddingTop: '0.2rem' }}>
                           {counts.map(([type, count]) => (
-                            <span key={type} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: `${dtColor[type]}12`, color: dtColor[type], fontSize: '0.69rem', fontWeight: 700, padding: '3px 9px', borderRadius: 999, border: `1px solid ${dtColor[type]}33` }}>
+                            <span key={type} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: `${dtColor[type]}10`, color: dtColor[type], fontSize: '0.67rem', fontWeight: 700, padding: '2px 8px', borderRadius: 999, border: `1px solid ${dtColor[type]}28` }}>
                               <span style={{ width: 5, height: 5, borderRadius: '50%', background: dtColor[type], display: 'inline-block' }} />
                               {type} · {count}
                             </span>
@@ -1060,20 +1068,20 @@ export function RouteList() {
                   </div>{/* end Body */}
 
                   {/* Footer */}
-                  <div style={{ padding: '0.75rem 1.25rem 1.25rem', display: 'flex', gap: '0.5rem' }}>
+                  <div style={{ padding: '0.65rem 1.2rem 1.1rem', display: 'flex', gap: '0.45rem' }}>
                     {isEditMode && (
-                      <button onClick={() => setCardPanels(prev => ({ ...prev, [route.id]: { info: false, edit: true } }))} style={{ ...cardBtnStyle(markerColor), flex: 1 }}>
+                      <button onClick={() => setCardPanels(prev => ({ ...prev, [route.id]: { info: false, edit: true } }))} style={{ ...cardBtnStyle(), flex: 1 }}>
                         <Edit2 style={{ width: 11, height: 11 }} /> Edit
                       </button>
                     )}
-                    <button onClick={() => setCardPanels(prev => ({ ...prev, [route.id]: { edit: false, info: true } }))} style={{ ...cardBtnStyle(markerColor), flex: 1 }}>
+                    <button onClick={() => setCardPanels(prev => ({ ...prev, [route.id]: { edit: false, info: true } }))} style={{ ...cardBtnStyle(), flex: 1 }}>
                       <History style={{ width: 11, height: 11 }} /> Log
                     </button>
                     <button
                       onClick={() => { setCurrentRouteId(route.id); setDetailDialogOpen(true) }}
-                      style={{ flex: 1.6, borderRadius: 10, fontSize: '0.8rem', fontWeight: 800, padding: '0.5rem 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', background: `linear-gradient(135deg, ${markerColor}, ${markerColor}cc)`, color: '#fff', border: 'none', cursor: 'pointer', boxShadow: `0 4px 14px ${markerColor}55` }}
+                      style={{ flex: 1.8, borderRadius: 10, fontSize: '0.8rem', fontWeight: 800, padding: '0.5rem 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 82%) 100%)', color: 'hsl(var(--primary-foreground))', border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px hsl(var(--primary) / 30%)', letterSpacing: '0.02em' }}
                     >
-                      <List style={{ width: 11, height: 11 }} /> View
+                      <List style={{ width: 12, height: 12 }} /> View Table
                     </button>
                   </div>
                 </div>
@@ -1101,7 +1109,7 @@ export function RouteList() {
                         <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'hsl(var(--foreground))', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                           Changelog
                           {cl && !cl.loading && cl.entries.length > 0 && (
-                            <span style={{ fontSize: '0.65rem', fontWeight: 700, background: markerColor, color: '#fff', borderRadius: 999, padding: '1px 6px' }}>{cl.entries.length}</span>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 700, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 999, padding: '1px 6px' }}>{cl.entries.length}</span>
                           )}
                         </div>
                         <div style={{ fontSize: '0.65rem', color: 'hsl(var(--muted-foreground))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{route.name}</div>
@@ -1109,8 +1117,8 @@ export function RouteList() {
                     </div>
 
                     {/* Updated timestamp banner */}
-                    <div style={{ padding: '0.6rem 1.25rem', background: `${markerColor}0d`, borderBottom: '1px solid hsl(var(--border)/0.5)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: route.updatedAt ? markerColor : 'hsl(var(--muted-foreground))', flexShrink: 0 }} />
+                    <div style={{ padding: '0.6rem 1.25rem', background: 'hsl(var(--primary) / 5%)', borderBottom: '1px solid hsl(var(--border)/0.5)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: route.updatedAt ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))', flexShrink: 0 }} />
                       <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'hsl(var(--muted-foreground))' }}>Updated</span>
                       <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'hsl(var(--foreground))', flex: 1 }}>
                         {route.updatedAt ? formatRelative(route.updatedAt) : '—'}
@@ -1139,8 +1147,8 @@ export function RouteList() {
                           <div key={entry.id} style={{ display: 'flex', gap: '0.65rem', paddingBottom: i < cl.entries.length - 1 ? '0.75rem' : 0, marginBottom: i < cl.entries.length - 1 ? '0.75rem' : 0, borderBottom: i < cl.entries.length - 1 ? '1px solid hsl(var(--border)/0.5)' : 'none' }}>
                             {/* timeline dot */}
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, paddingTop: 3 }}>
-                              <div style={{ width: 8, height: 8, borderRadius: '50%', background: markerColor, flexShrink: 0 }} />
-                              {i < cl.entries.length - 1 && <div style={{ width: 1, flex: 1, background: `${markerColor}30`, marginTop: 3 }} />}
+                              <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'hsl(var(--primary))', flexShrink: 0 }} />
+                              {i < cl.entries.length - 1 && <div style={{ width: 1, flex: 1, background: 'hsl(var(--primary) / 20%)', marginTop: 3 }} />}
                             </div>
                             {/* content */}
                             <div style={{ flex: 1, minWidth: 0 }}>
@@ -1156,7 +1164,7 @@ export function RouteList() {
                     <div style={{ padding: '0.75rem 1.25rem 1.25rem', borderTop: '1px solid hsl(var(--border))', flexShrink: 0 }}>
                       <button
                         onClick={() => setCardPanels(prev => ({ ...prev, [route.id]: { info: false, edit: false } }))}
-                        style={{ ...cardBtnStyle(markerColor), width: '100%' }}
+                        style={{ ...cardBtnStyle(), width: '100%' }}
                       >
                         <ArrowDown style={{ width: 12, height: 12, transform: 'rotate(90deg)' }} /> Back to card
                       </button>
@@ -1168,7 +1176,7 @@ export function RouteList() {
                 {/* ── Panel 3: Edit ── */}
                 <div style={{ width: 340, flexShrink: 0, height: 520, display: 'flex', flexDirection: 'column', background: 'hsl(var(--card))' }}>
                   <div style={{ padding: '1rem 1.25rem 0.75rem', background: 'hsl(var(--background))', borderBottom: '1px solid hsl(var(--border))', display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0 }}>
-                    <div style={{ width: 30, height: 30, borderRadius: 8, background: `linear-gradient(135deg, ${markerColor}, ${markerColor}bb)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div style={{ width: 30, height: 30, borderRadius: 8, background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 75%))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <Edit2 style={{ color: '#fff', width: 13, height: 13 }} />
                     </div>
                     <div style={{ flex: 1 }}>
@@ -1179,17 +1187,17 @@ export function RouteList() {
                   <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div>
                       <label style={{ fontSize: '0.67rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'hsl(var(--muted-foreground))', display: 'flex', alignItems: 'center', gap: 4, marginBottom: '0.4rem' }}>Route Name</label>
-                      <input value={ep.name} onChange={e => setEditPanelState(prev => ({ ...prev, [route.id]: { ...ep, name: e.target.value } }))} placeholder="Route name..." style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: 8, border: '1.5px solid hsl(var(--border))', fontSize: '0.84rem', fontWeight: 600, color: 'hsl(var(--foreground))', background: 'hsl(var(--background))', outline: 'none', boxSizing: 'border-box' }} onFocus={e => e.target.style.borderColor = markerColor} onBlur={e => e.target.style.borderColor = 'hsl(var(--border))'} />
+                      <input value={ep.name} onChange={e => setEditPanelState(prev => ({ ...prev, [route.id]: { ...ep, name: e.target.value } }))} placeholder="Route name..." style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: 8, border: '1.5px solid hsl(var(--border))', fontSize: '0.84rem', fontWeight: 600, color: 'hsl(var(--foreground))', background: 'hsl(var(--background))', outline: 'none', boxSizing: 'border-box' }} onFocus={e => e.target.style.borderColor = 'hsl(var(--primary))'} onBlur={e => e.target.style.borderColor = 'hsl(var(--border))'} />
                     </div>
                     <div>
                       <label style={{ fontSize: '0.67rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'hsl(var(--muted-foreground))', display: 'flex', alignItems: 'center', gap: 4, marginBottom: '0.4rem' }}>Code</label>
-                      <input value={ep.code} onChange={e => setEditPanelState(prev => ({ ...prev, [route.id]: { ...ep, code: e.target.value } }))} placeholder="Route code..." style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: 8, border: '1.5px solid hsl(var(--border))', fontSize: '0.84rem', fontWeight: 600, color: 'hsl(var(--foreground))', background: 'hsl(var(--background))', outline: 'none', boxSizing: 'border-box', fontFamily: 'monospace' }} onFocus={e => e.target.style.borderColor = markerColor} onBlur={e => e.target.style.borderColor = 'hsl(var(--border))'} />
+                      <input value={ep.code} onChange={e => setEditPanelState(prev => ({ ...prev, [route.id]: { ...ep, code: e.target.value } }))} placeholder="Route code..." style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: 8, border: '1.5px solid hsl(var(--border))', fontSize: '0.84rem', fontWeight: 600, color: 'hsl(var(--foreground))', background: 'hsl(var(--background))', outline: 'none', boxSizing: 'border-box', fontFamily: 'monospace' }} onFocus={e => e.target.style.borderColor = 'hsl(var(--primary))'} onBlur={e => e.target.style.borderColor = 'hsl(var(--border))'} />
                     </div>
                     <div>
                       <label style={{ fontSize: '0.67rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'hsl(var(--muted-foreground))', display: 'flex', alignItems: 'center', gap: 4, marginBottom: '0.4rem' }}>Shift</label>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         {['AM', 'PM'].map(opt => (
-                          <button key={opt} onClick={() => setEditPanelState(prev => ({ ...prev, [route.id]: { ...ep, shift: opt } }))} style={{ flex: 1, padding: '0.55rem 0', borderRadius: 8, border: `2px solid ${ep.shift === opt ? ep.color : 'hsl(var(--border))'}`, background: ep.shift === opt ? ep.color : 'hsl(var(--muted))', color: ep.shift === opt ? '#fff' : 'hsl(var(--muted-foreground))', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s' }}>{opt}</button>
+                          <button key={opt} onClick={() => setEditPanelState(prev => ({ ...prev, [route.id]: { ...ep, shift: opt } }))} style={{ flex: 1, padding: '0.55rem 0', borderRadius: 8, border: `2px solid ${ep.shift === opt ? 'hsl(var(--primary))' : 'hsl(var(--border))'}`, background: ep.shift === opt ? 'hsl(var(--primary))' : 'hsl(var(--muted))', color: ep.shift === opt ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s' }}>{opt}</button>
                         ))}
                       </div>
                     </div>
@@ -1218,7 +1226,7 @@ export function RouteList() {
                         setEditPanelState(prev => { const n = { ...prev }; delete n[route.id]; return n })
                         toast.success('Route updated', { description: `"${ep.name}" · remember to save.`, icon: <CheckCircle2 className="size-4 text-primary" />, duration: 3000 })
                       }}
-                      style={{ flex: 1, borderRadius: 8, fontSize: '0.8rem', fontWeight: 700, padding: '0.45rem 0', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '0.35rem', background: markerColor, color: '#fff', border: 'none', cursor: 'pointer' }}
+                      style={{ flex: 1, borderRadius: 8, fontSize: '0.8rem', fontWeight: 700, padding: '0.45rem 0', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '0.35rem', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', cursor: 'pointer' }}
                     >
                       <Check style={{ width: 12, height: 12 }} /> Save
                     </button>
@@ -1236,30 +1244,46 @@ export function RouteList() {
                       : { width: '92vw', maxWidth: '56rem', height: 'calc(7 * 44px + 96px)', borderRadius: '0.75rem' }
                     }
                   >
-                    {/* Header */}
-                    <div className="px-5 py-4 border-b border-border shrink-0 bg-background flex items-center gap-4">
-                      {(route.name + " " + route.code).toLowerCase().includes("kl")
-                        ? <img src="/kl-flag.png" className="object-cover rounded shadow-sm ring-1 ring-black/10 dark:ring-white/10 shrink-0" style={{ width: 48, height: 30 }} alt="KL" />
-                        : (route.name + " " + route.code).toLowerCase().includes("sel")
-                        ? <img src="/selangor-flag.png" className="object-cover rounded shadow-sm ring-1 ring-black/10 dark:ring-white/10 shrink-0" style={{ width: 48, height: 30 }} alt="Selangor" />
-                        : (
-                          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 ring-1 ring-primary/20">
-                            <Truck className="size-5 text-primary" />
+                    {/* Header — liquid blob */}
+                    <div className="shrink-0 border-b border-border" style={{ position: 'relative', overflow: 'hidden', background: 'hsl(var(--background))' }}>
+                      {/* Liquid blobs */}
+                      <svg viewBox="0 0 900 72" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0, pointerEvents: 'none' }}>
+                        <ellipse cx="60" cy="20" rx="180" ry="80" fill="hsl(var(--primary) / 13%)" transform="rotate(-15 60 20)" />
+                        <ellipse cx="820" cy="55" rx="160" ry="70" fill="hsl(var(--primary) / 9%)" transform="rotate(10 820 55)" />
+                        <ellipse cx="420" cy="-10" rx="220" ry="60" fill="hsl(var(--primary) / 7%)" transform="rotate(5 420 -10)" />
+                        <circle cx="750" cy="10" r="55" fill="hsl(var(--primary) / 6%)" />
+                        <circle cx="150" cy="65" r="40" fill="hsl(var(--primary) / 7%)" />
+                      </svg>
+                      {/* Header content */}
+                      <div className="relative flex items-center gap-4 px-5 py-4" style={{ zIndex: 1 }}>
+                        {(route.name + " " + route.code).toLowerCase().includes("kl")
+                          ? <img src="/kl-flag.png" className="object-cover rounded shadow-sm ring-1 ring-black/10 dark:ring-white/10 shrink-0" style={{ width: 48, height: 30 }} alt="KL" />
+                          : (route.name + " " + route.code).toLowerCase().includes("sel")
+                          ? <img src="/selangor-flag.png" className="object-cover rounded shadow-sm ring-1 ring-black/10 dark:ring-white/10 shrink-0" style={{ width: 48, height: 30 }} alt="Selangor" />
+                          : (
+                            <div style={{ width: 38, height: 38, borderRadius: 12, background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 65%))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px hsl(var(--primary) / 28%)' }}>
+                              <Truck style={{ width: 18, height: 18, color: 'hsl(var(--primary-foreground))' }} />
+                            </div>
+                          )}
+                        <div className="flex-1 min-w-0">
+                          <h1 className="text-base font-bold leading-tight truncate">{route.name}</h1>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, fontFamily: 'monospace', background: 'hsl(var(--primary) / 10%)', color: 'hsl(var(--primary))', padding: '1px 7px', borderRadius: 5, border: '1px solid hsl(var(--primary) / 25%)' }}>{route.code}</span>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'hsl(var(--muted-foreground))', background: 'hsl(var(--muted))', padding: '1px 7px', borderRadius: 5, border: '1px solid hsl(var(--border))' }}>{route.shift}</span>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'hsl(var(--primary))' }}>{route.deliveryPoints.length} stops</span>
                           </div>
-                        )}
-                      <div className="flex-1 min-w-0">
-                        <h1 className="text-base font-bold leading-tight truncate">{route.name}</h1>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={() => openSettings(route.id)} className="shrink-0 flex items-center gap-2 h-9 rounded-xl text-xs px-4">
+                          <Settings className="size-4" />Settings
+                        </Button>
+                        <button
+                          onClick={() => setDetailFullscreen(f => !f)}
+                          className="shrink-0 p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                          title={detailFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                        >
+                          {detailFullscreen ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+                        </button>
                       </div>
-                      <Button variant="outline" size="sm" onClick={() => openSettings(route.id)} className="shrink-0 flex items-center gap-2 h-9 rounded-xl text-xs px-4">
-                        <Settings className="size-4" />Settings
-                      </Button>
-                      <button
-                        onClick={() => setDetailFullscreen(f => !f)}
-                        className="shrink-0 p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                        title={detailFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-                      >
-                        {detailFullscreen ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
-                      </button>
                     </div>
                     {/* Table */}
                     <div className="flex-1 overflow-auto scroll-smooth">
