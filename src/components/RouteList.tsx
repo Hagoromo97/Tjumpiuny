@@ -982,11 +982,6 @@ export function RouteList() {
 
                   {/* ── Colored header band ── */}
                   <div style={{ position: 'relative', height: 138, background: 'linear-gradient(140deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 88%) 60%, hsl(var(--primary) / 62%) 100%)', overflow: 'hidden', flexShrink: 0 }}>
-                    {/* Decorative circles behind */}
-                    <div style={{ position: 'absolute', width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', top: -60, right: -40 }} />
-                    <div style={{ position: 'absolute', width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', bottom: -30, left: 20 }} />
-                    <div style={{ position: 'absolute', width: 60, height: 60, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', top: 10, right: 60 }} />
-
                     {/* Header content */}
                     <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'flex-start', gap: '0.85rem', padding: '1.1rem 1.2rem 0' }}>
                       {/* Truck avatar */}
@@ -1009,10 +1004,6 @@ export function RouteList() {
                       </div>
                     </div>
 
-                    {/* Bottom wave */}
-                    <svg viewBox="0 0 340 24" style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: 24 }} preserveAspectRatio="none">
-                      <path d="M0 24 L0 10 Q85 0 170 12 Q255 24 340 8 L340 24 Z" fill="hsl(var(--card))" />
-                    </svg>
                   </div>
 
                   {/* ── Body ── */}
@@ -1244,18 +1235,9 @@ export function RouteList() {
                       : { width: '92vw', maxWidth: '56rem', height: 'calc(7 * 44px + 96px)', borderRadius: '0.75rem' }
                     }
                   >
-                    {/* Header — liquid blob */}
-                    <div className="shrink-0 border-b border-border" style={{ position: 'relative', overflow: 'hidden', background: 'hsl(var(--background))' }}>
-                      {/* Liquid blobs */}
-                      <svg viewBox="0 0 900 72" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0, pointerEvents: 'none' }}>
-                        <ellipse cx="60" cy="20" rx="180" ry="80" fill="hsl(var(--primary) / 13%)" transform="rotate(-15 60 20)" />
-                        <ellipse cx="820" cy="55" rx="160" ry="70" fill="hsl(var(--primary) / 9%)" transform="rotate(10 820 55)" />
-                        <ellipse cx="420" cy="-10" rx="220" ry="60" fill="hsl(var(--primary) / 7%)" transform="rotate(5 420 -10)" />
-                        <circle cx="750" cy="10" r="55" fill="hsl(var(--primary) / 6%)" />
-                        <circle cx="150" cy="65" r="40" fill="hsl(var(--primary) / 7%)" />
-                      </svg>
-                      {/* Header content */}
-                      <div className="relative flex items-center gap-4 px-5 py-4" style={{ zIndex: 1 }}>
+                    {/* Header */}
+                    <div className="shrink-0 border-b border-border">
+                      <div className="flex items-center gap-4 px-5 py-4">
                         {(route.name + " " + route.code).toLowerCase().includes("kl")
                           ? <img src="/kl-flag.png" className="object-cover rounded shadow-sm ring-1 ring-black/10 dark:ring-white/10 shrink-0" style={{ width: 48, height: 30 }} alt="KL" />
                           : (route.name + " " + route.code).toLowerCase().includes("sel")
