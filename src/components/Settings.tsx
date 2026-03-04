@@ -3,7 +3,7 @@ import type { ReactNode } from "react"
 import {
   User, Bell, Lock, Globe, Mail, Phone, Save, Shield,
   Eye, EyeOff, Moon, Sun, Check, Type, ZoomIn,
-  Brush, AlertTriangle, Languages, Navigation, Monitor,
+  Brush, AlertTriangle, Languages, Navigation,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -44,9 +44,8 @@ const THEME_OPTIONS: ThemeOption[] = [
 ]
 
 const MODE_OPTIONS = [
-  { id: "light" as const,  label: "Light",  icon: Sun },
-  { id: "system" as const, label: "Auto",   icon: Monitor },
-  { id: "dark" as const,   label: "Dark",   icon: Moon },
+  { id: "light" as const, label: "Light", icon: Sun },
+  { id: "dark" as const,  label: "Dark",  icon: Moon },
 ]
 
 const LS_DEFAULT_VIEW = "mapMarkerDefaultView"
@@ -69,7 +68,7 @@ function SectionHeader({ icon, title, description }: { icon: ReactNode; title: s
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 export function Settings({ section = "profile" }: { section?: SectionId }) {
-  const { mode, setMode, resolvedMode, colorTheme, setColorTheme, appFont, setAppFont, appZoom, setAppZoom, textSize, setTextSize } = useTheme()
+  const { mode, setMode, colorTheme, setColorTheme, appFont, setAppFont, appZoom, setAppZoom, textSize, setTextSize } = useTheme()
   const active = section
 
   // Profile state
@@ -226,11 +225,7 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
                     )
                   })}
                 </div>
-                {mode === "system" && (
-                  <p className="text-xs text-muted-foreground px-1">
-                    Currently <span className="font-semibold">{resolvedMode === "dark" ? "Dark" : "Light"}</span> mode based on your device setting.
-                  </p>
-                )}
+
               </div>
 
               <Separator />
@@ -240,7 +235,7 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
                 <label className="text-sm font-semibold">Colour Theme</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {THEME_OPTIONS.map(opt => {
-                    const sw = resolvedMode === "dark" ? opt.swatches.dark : opt.swatches.light
+                    const sw = mode === "dark" ? opt.swatches.dark : opt.swatches.light
                     const [bg, primary, secondary, accent] = sw
                     const isActive = colorTheme === opt.id
                     return (
@@ -272,7 +267,7 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
                           </div>
                           <span
                             className="flex-1 text-[10px] font-bold truncate leading-none"
-                            style={{ color: resolvedMode === "dark" ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.7)" }}
+                            style={{ color: mode === "dark" ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.7)" }}
                           >
                             {opt.label}
                           </span>

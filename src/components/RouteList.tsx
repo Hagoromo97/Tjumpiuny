@@ -1666,8 +1666,8 @@ export function RouteList() {
                                     <button
                                       className="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-150 hover:scale-110 active:scale-95"
                                       style={isActive
-                                        ? { color: markerColor, background: `${markerColor}28`, boxShadow: `0 0 0 1px ${markerColor}35` }
-                                        : { color: 'hsl(var(--muted-foreground))', background: 'hsl(var(--muted))', opacity: 0.5 }
+                                        ? { color: '#16a34a' }
+                                        : { color: '#dc2626' }
                                       }
                                       onClick={() => { setSelectedPoint(point); setInfoModalOpen(true) }}
                                     >

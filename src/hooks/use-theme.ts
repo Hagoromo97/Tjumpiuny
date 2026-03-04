@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 
-export type ColorMode = "light" | "dark" | "system"
+export type ColorMode = "light" | "dark"
 export type ColorTheme =
   | "default"
   | "bubblegum"
@@ -53,21 +53,10 @@ function loadGoogleFont(googleId: string) {
 }
 
 export function useTheme() {
-  const getSystemResolved = (): "light" | "dark" =>
-    window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
-
   const [mode, setMode] = useState<ColorMode>(() => {
     const stored = localStorage.getItem("color-mode") as ColorMode | null
-    if (stored === "light" || stored === "dark" || stored === "system") return stored
-    return "system"
-  })
-
-  // resolvedMode is always "light" | "dark" — the actual applied mode
-  const [resolvedMode, setResolvedMode] = useState<"light" | "dark">(() => {
-    const stored = localStorage.getItem("color-mode") as ColorMode | null
-    if (stored === "light") return "light"
-    if (stored === "dark") return "dark"
-    return getSystemResolved()
+    if (stored === "light" || stored === "dark") return stored
+    return "light"
   })
 
   const [colorTheme, setColorTheme] = useState<ColorTheme>(() => {
@@ -87,30 +76,11 @@ export function useTheme() {
     return (localStorage.getItem("text-size") as TextSize | null) ?? "16"
   })
 
-  // Sync resolvedMode when mode changes
-  useEffect(() => {
-    if (mode === "system") {
-      setResolvedMode(getSystemResolved())
-    } else {
-      setResolvedMode(mode)
-    }
-  }, [mode])
-
-  // Watch system preference when mode === "system"
-  useEffect(() => {
-    if (mode !== "system") return
-    const mq = window.matchMedia("(prefers-color-scheme: dark)")
-    const handler = (e: MediaQueryListEvent) =>
-      setResolvedMode(e.matches ? "dark" : "light")
-    mq.addEventListener("change", handler)
-    return () => mq.removeEventListener("change", handler)
-  }, [mode])
-
   // Apply color mode + theme to DOM
   useEffect(() => {
     const root = document.documentElement
-    root.classList.toggle("dark", resolvedMode === "dark")
-    root.classList.toggle("light", resolvedMode === "light")
+    root.classList.toggle("dark", mode === "dark")
+    root.classList.toggle("light", mode === "light")
     if (colorTheme === "default") {
       root.removeAttribute("data-theme")
     } else {
@@ -121,8 +91,8 @@ export function useTheme() {
 
     // Update PWA meta theme-color to match actual background
     const metaColor =
-      THEME_META_BG[colorTheme]?.[resolvedMode] ??
-      (resolvedMode === "dark" ? "#111827" : "#f8fafc")
+      THEME_META_BG[colorTheme]?.[mode] ??
+      (mode === "dark" ? "#111827" : "#f8fafc")
     const allMetas = document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
     if (allMetas.length === 0) {
       const meta = document.createElement("meta")
@@ -132,7 +102,7 @@ export function useTheme() {
     } else {
       allMetas.forEach(meta => meta.setAttribute("content", metaColor))
     }
-  }, [mode, resolvedMode, colorTheme])
+  }, [mode, colorTheme])
 
   // Font
   useEffect(() => {
@@ -146,7 +116,10 @@ export function useTheme() {
 
   // App zoom (scales entire layout)
   useEffect(() => {
-    document.documentElement.style.zoom = `${appZoom}%`
+    // Apply zoom to body, not html — html-level zoom distorts viewport units
+    // causing circles to appear oval and squares to appear tall
+    document.documentElement.style.zoom = ""
+    document.body.style.zoom = `${appZoom}%`
     localStorage.setItem("app-zoom", appZoom)
   }, [appZoom])
 
@@ -156,8 +129,7 @@ export function useTheme() {
     localStorage.setItem("text-size", textSize)
   }, [textSize])
 
-  const toggleMode = () =>
-    setMode(prev => (prev === "light" ? "dark" : prev === "dark" ? "system" : "light"))
+  const toggleMode = () => setMode(prev => prev === "light" ? "dark" : "light")
 
   // Backward-compat alias used by old ThemeToggle
   const theme = mode
@@ -167,7 +139,7 @@ export function useTheme() {
   return {
     theme, setTheme, toggleTheme,
     mode, setMode, toggleMode,
-    resolvedMode,
+    resolvedMode: mode,
     colorTheme, setColorTheme,
     appFont, setAppFont,
     appZoom, setAppZoom,
