@@ -15,7 +15,7 @@ const DELIVERY_COLORS: Record<string, string> = {
 interface DeliveryPoint {
   code: string
   name: string
-  delivery: "Daily" | "Weekday" | "Alt 1" | "Alt 2"
+  delivery: string
   latitude: number
   longitude: number
   descriptions: { key: string; value: string }[]

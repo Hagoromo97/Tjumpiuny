@@ -3,7 +3,7 @@ import type { ReactNode } from "react"
 import {
   User, Bell, Lock, Globe, Mail, Phone, Save, Shield,
   Eye, EyeOff, Moon, Sun, Check, Type, ZoomIn,
-  Brush, AlertTriangle, Languages, Navigation,
+  Brush, AlertTriangle, Languages, Navigation, Monitor,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,8 +16,8 @@ import { useTheme, FONT_OPTIONS, type ColorTheme, type AppFont, type AppZoom, ty
 type ThemeOption = {
   id: ColorTheme
   label: string
-  lightPreview: { bg: string; primary: string; text: string }
-  darkPreview: { bg: string; primary: string; text: string }
+  // swatches shown in the card (bg, primary, secondary, accent)
+  swatches: { light: [string, string, string, string]; dark: [string, string, string, string] }
 }
 
 type SectionId =
@@ -32,14 +32,21 @@ type SectionId =
   | "danger"
 
 // ─── Constants ────────────────────────────────────────────────────────────────
+// swatches: [background, primary, secondary/muted, accent]
 const THEME_OPTIONS: ThemeOption[] = [
-  { id: "default",        label: "Default",        lightPreview: { bg: "#f0f7ff", primary: "#0ea5e9", text: "#0f1f2b" }, darkPreview: { bg: "#0d1a22", primary: "#0ea5e9", text: "#e8f4fb" } },
-  { id: "bubblegum",      label: "Bubble Gum",     lightPreview: { bg: "#f5d6e4", primary: "#d4487a", text: "#4a2030" }, darkPreview: { bg: "#1e2e3a", primary: "#f5d87c", text: "#f0d0e0" } },
-  { id: "candyland",      label: "Candy Land",     lightPreview: { bg: "#fde8ef", primary: "#e03050", text: "#2a1535" }, darkPreview: { bg: "#1e1635", primary: "#f5d070", text: "#f5e8c0" } },
-  { id: "claude",         label: "Claude",         lightPreview: { bg: "#faf6ef", primary: "#d46b32", text: "#2a1a0e" }, darkPreview: { bg: "#1f1610", primary: "#e07840", text: "#f0e8d8" } },
-  { id: "cyberpunk",      label: "Cyberpunk",      lightPreview: { bg: "#eef2f8", primary: "#00c8e0", text: "#0a1020" }, darkPreview: { bg: "#0a0c18", primary: "#e8e030", text: "#c0f0f8" } },
-  { id: "northern-lights",label: "Northern Lights",lightPreview: { bg: "#eef5f5", primary: "#2a9d7f", text: "#102028" }, darkPreview: { bg: "#0a1020", primary: "#40d8a8", text: "#c0f0e8" } },
-  { id: "ocean-breeze",   label: "Ocean Breeze",   lightPreview: { bg: "#e8f4f8", primary: "#1a6ea0", text: "#0a1820" }, darkPreview: { bg: "#0c1620", primary: "#30b8d8", text: "#b8e8f5" } },
+  { id: "default",         label: "Default",         swatches: { light: ["#dce8f3", "#1a7fbf", "#b8d0e8", "#b8d0e8"], dark:  ["#0e1117", "#3ba9e0", "#1a2030", "#1a2030"] } },
+  { id: "bubblegum",       label: "Bubble Gum",      swatches: { light: ["#f0d8e5", "#d4487a", "#c8e0e8", "#f5e4a0"], dark:  ["#1a2030", "#f5d87c", "#b87890", "#9870a8"] } },
+  { id: "candyland",       label: "Candy Land",      swatches: { light: ["#fde8ef", "#e03050", "#70d890", "#f8d060"], dark:  ["#1a1428", "#f8e088", "#60c880", "#e06878"] } },
+  { id: "claude",          label: "Claude",          swatches: { light: ["#faf6ef", "#d46b32", "#e8d8b8", "#d8c890"], dark:  ["#1a1510", "#e07840", "#382818", "#483820"] } },
+  { id: "cyberpunk",       label: "Cyberpunk",       swatches: { light: ["#f0f4fa", "#00c8e0", "#d8e0f0", "#e8e030"], dark:  ["#0c0e1c", "#e8e030", "#101828", "#00b8d0"] } },
+  { id: "northern-lights", label: "Northern Lights", swatches: { light: ["#eff7f5", "#2a9d7f", "#c0d8e8", "#c0a8e0"], dark:  ["#111828", "#40d8a8", "#182030", "#6060c8"] } },
+  { id: "ocean-breeze",    label: "Ocean Breeze",    swatches: { light: ["#f0f6f8", "#1a6ea0", "#80d0e8", "#60b8c8"], dark:  ["#131e2a", "#30b8d8", "#182030", "#508098"] } },
+]
+
+const MODE_OPTIONS = [
+  { id: "light" as const,  label: "Light",  icon: Sun },
+  { id: "system" as const, label: "Auto",   icon: Monitor },
+  { id: "dark" as const,   label: "Dark",   icon: Moon },
 ]
 
 const LS_DEFAULT_VIEW = "mapMarkerDefaultView"
@@ -62,7 +69,7 @@ function SectionHeader({ icon, title, description }: { icon: ReactNode; title: s
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 export function Settings({ section = "profile" }: { section?: SectionId }) {
-  const { mode, setMode, colorTheme, setColorTheme, appFont, setAppFont, appZoom, setAppZoom, textSize, setTextSize } = useTheme()
+  const { mode, setMode, resolvedMode, colorTheme, setColorTheme, appFont, setAppFont, appZoom, setAppZoom, textSize, setTextSize } = useTheme()
   const active = section
 
   // Profile state
@@ -194,36 +201,87 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
       case "appearance-theme":
         return (
           <div>
-            <SectionHeader icon={<Brush className="size-5" />} title="Theme & Mode" description="Choose light/dark mode and app colour theme." />
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Display Mode</label>
-                <div className="flex gap-2">
-                  <button onClick={() => setMode("light")} className={`flex items-center gap-2 flex-1 py-2 px-4 rounded-md border transition-colors ${mode === "light" ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:bg-accent border-border"}`}>
-                    <Sun className="size-4" />Light
-                  </button>
-                  <button onClick={() => setMode("dark")} className={`flex items-center gap-2 flex-1 py-2 px-4 rounded-md border transition-colors ${mode === "dark" ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:bg-accent border-border"}`}>
-                    <Moon className="size-4" />Dark
-                  </button>
-                </div>
-              </div>
-              <Separator />
+            <SectionHeader icon={<Brush className="size-5" />} title="Theme & Colour" description="Choose display mode and app colour theme." />
+            <div className="space-y-8">
+
+              {/* ─ Display Mode ─ */}
               <div className="space-y-3">
-                <label className="text-sm font-medium">Color Theme</label>
+                <label className="text-sm font-semibold">Display Mode</label>
+                <div className="flex items-center rounded-xl border border-border bg-muted/40 p-1 gap-1">
+                  {MODE_OPTIONS.map(({ id, label, icon: Icon }) => {
+                    const isActive = mode === id
+                    return (
+                      <button
+                        key={id}
+                        onClick={() => setMode(id)}
+                        className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 px-3 text-sm font-semibold transition-all duration-200 ${
+                          isActive
+                            ? "bg-background text-foreground shadow-sm ring-1 ring-border"
+                            : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                        }`}
+                      >
+                        <Icon className="size-4 shrink-0" />
+                        <span>{label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+                {mode === "system" && (
+                  <p className="text-xs text-muted-foreground px-1">
+                    Currently <span className="font-semibold">{resolvedMode === "dark" ? "Dark" : "Light"}</span> mode based on your device setting.
+                  </p>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* ─ Color Theme ─ */}
+              <div className="space-y-3">
+                <label className="text-sm font-semibold">Colour Theme</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {THEME_OPTIONS.map(opt => {
-                    const preview = mode === "dark" ? opt.darkPreview : opt.lightPreview
+                    const sw = resolvedMode === "dark" ? opt.swatches.dark : opt.swatches.light
+                    const [bg, primary, secondary, accent] = sw
                     const isActive = colorTheme === opt.id
                     return (
-                      <button key={opt.id} onClick={() => setColorTheme(opt.id)} style={{ backgroundColor: preview.bg }}
-                        className={`relative rounded-lg border-2 p-3 text-left transition-all hover:scale-105 ${isActive ? "border-primary ring-2 ring-primary/40" : "border-border hover:border-primary/50"}`}
+                      <button
+                        key={opt.id}
+                        onClick={() => setColorTheme(opt.id)}
+                        className={`relative flex flex-col overflow-hidden rounded-xl border-2 text-left transition-all duration-200 hover:scale-[1.03] hover:shadow-md ${
+                          isActive
+                            ? "border-primary shadow-md ring-2 ring-primary/30"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                        style={{ backgroundColor: bg }}
                       >
-                        <div className="flex gap-1 mb-2">
-                          <span className="h-3 w-6 rounded-sm" style={{ backgroundColor: preview.primary }} />
-                          <span className="h-3 w-6 rounded-sm opacity-50" style={{ backgroundColor: preview.text }} />
+                        {/* Gradient banner */}
+                        <div
+                          className="h-10 w-full shrink-0"
+                          style={{ background: `linear-gradient(135deg, ${primary} 0%, ${accent} 50%, ${secondary} 100%)` }}
+                        />
+                        {/* Info row */}
+                        <div className="flex items-center gap-2 px-2.5 py-2">
+                          <div className="flex gap-1 shrink-0">
+                            {[primary, secondary, accent].map((c, i) => (
+                              <span
+                                key={i}
+                                className="inline-block w-3 h-3 rounded-full ring-1 ring-black/10"
+                                style={{ backgroundColor: c }}
+                              />
+                            ))}
+                          </div>
+                          <span
+                            className="flex-1 text-[10px] font-bold truncate leading-none"
+                            style={{ color: resolvedMode === "dark" ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.7)" }}
+                          >
+                            {opt.label}
+                          </span>
                         </div>
-                        <p className="text-xs font-semibold truncate" style={{ color: preview.text }}>{opt.label}</p>
-                        {isActive && <span className="absolute top-1.5 right-1.5 flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground"><Check className="size-2.5" /></span>}
+                        {isActive && (
+                          <span className="absolute top-1.5 right-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+                            <Check className="size-3" />
+                          </span>
+                        )}
                       </button>
                     )
                   })}

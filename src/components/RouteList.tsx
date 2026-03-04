@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react"
-import { List, Info, Plus, Check, X, Edit2, Trash2, Search, Settings, Save, ArrowUp, ArrowDown, Truck, Loader2, Maximize2, Minimize2, SlidersHorizontal, CheckCircle2, MapPin, Route, AlertCircle, History } from "lucide-react"
-import type { CSSProperties } from "react"
+import { List, Info, Plus, Check, X, Edit2, Trash2, Search, Settings, Save, ArrowUp, ArrowDown, Truck, Loader2, Maximize2, Minimize2, SlidersHorizontal, CheckCircle2, MapPin, Route, AlertCircle, History, Map } from "lucide-react"
 import { toast } from "sonner"
 import { RowInfoModal } from "./RowInfoModal"
+import { DeliveryMap } from "@/components/DeliveryMap"
 import { appendChangelog } from "./RouteNotesModal"
 import type { RouteChangelog } from "./RouteNotesModal"
 import { useEditMode } from "@/contexts/EditModeContext"
@@ -30,7 +30,7 @@ import {
 interface DeliveryPoint {
   code: string
   name: string
-  delivery: "Daily" | "Weekday" | "Alt 1" | "Alt 2"
+  delivery: string
   latitude: number
   longitude: number
   descriptions: { key: string; value: string }[]
@@ -47,11 +47,12 @@ interface Route {
   shift: string
   color?: string
   deliveryPoints: DeliveryPoint[]
+  labels?: string[]
   updatedAt?: string
 }
 
 // Returns true if the delivery point is active on the given date
-function isDeliveryActive(delivery: DeliveryPoint['delivery'], date: Date = new Date()): boolean {
+function isDeliveryActive(delivery: string, date: Date = new Date()): boolean {
   const dayOfWeek = date.getDay()   // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
   const dateNum   = date.getDate()  // 1-31
   switch (delivery) {
@@ -122,21 +123,13 @@ const DEFAULT_ROUTES: Route[] = [
   }
 ]
 
+// ── Label color palette ──────────────────────────────────────────────────────
+const LABEL_PALETTE = ['#22c55e', '#3b82f6', '#eab308', '#a855f7', '#ef4444', '#f97316', '#06b6d4', '#ec4899']
+
 // ── Route card color palette (default monochrome — user boleh tukar via color picker) ──
 const ROUTE_COLORS = [
   '#374151',
 ]
-
-// ── Shared button style helper ───────────────────────────────────────────────
-function cardBtnStyle(): CSSProperties {
-  return {
-    borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
-    padding: '0.45rem 0', justifyContent: 'center',
-    display: 'flex', alignItems: 'center', gap: '0.35rem',
-    background: 'hsl(var(--primary) / 9%)', color: 'hsl(var(--primary))',
-    border: '1px solid hsl(var(--primary) / 30%)', cursor: 'pointer',
-  }
-}
 
 export function RouteList() {
   const { isEditMode, hasUnsavedChanges, isSaving, setHasUnsavedChanges, registerSaveHandler, saveChanges, registerDiscardHandler } = useEditMode()
@@ -161,7 +154,7 @@ export function RouteList() {
   // ── Per-card changelog cache ───────────────────────────────────────
   const [cardChangelogs, setCardChangelogs] = useState<Record<string, { loading: boolean; entries: RouteChangelog[] }>>({})
   // ── Per-card edit form state ───────────────────────────────────────
-  const [editPanelState, setEditPanelState] = useState<Record<string, { name: string; code: string; shift: string; color: string }>>({})
+  const [editPanelState, setEditPanelState] = useState<Record<string, { name: string; code: string; shift: string; color: string; labels: string[] }>>({})
   const getCardPanel = (id: string) => cardPanels[id] ?? { info: false, edit: false }
 
   // Close edit panels when edit mode turns off
@@ -197,6 +190,7 @@ export function RouteList() {
 
   const [detailDialogOpen, setDetailDialogOpen] = useState(false)
   const [detailFullscreen, setDetailFullscreen] = useState(false)
+  const [dialogView, setDialogView] = useState<'table' | 'map'>('table')
 
 
   // Pinned routes stored in localStorage
@@ -294,7 +288,7 @@ export function RouteList() {
   const [newPoint, setNewPoint] = useState({
     code: "",
     name: "",
-    delivery: "Daily" as "Daily" | "Weekday" | "Alt 1" | "Alt 2",
+    delivery: "Daily" as string,
     latitude: 0,
     longitude: 0,
     descriptions: [] as { key: string; value: string }[]
@@ -308,6 +302,8 @@ export function RouteList() {
   const [deliveryModalOpen, setDeliveryModalOpen] = useState(false)
   const [deliveryModalCode, setDeliveryModalCode] = useState<string | null>(null)
   const [openKmTooltip, setOpenKmTooltip] = useState<string | null>(null)
+  const [badgePopover, setBadgePopover] = useState<string | null>(null)
+  const [editLabelInput, setEditLabelInput] = useState<Record<string, string>>({})
   // tracks locally-edited cells that haven't been pushed to DB yet
   const [pendingCellEdits, setPendingCellEdits] = useState<Set<string>>(new Set())
 
@@ -856,7 +852,7 @@ export function RouteList() {
   return (
     <div className="relative font-light flex-1 overflow-y-auto">
       {/* Route List */}
-      <div className="p-5 md:p-8" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
+      <div className="p-5 md:p-8 max-w-[1400px] mx-auto" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
         {/* Page header */}
         <div className="mb-6 flex items-center justify-between">
           <div>
@@ -966,14 +962,15 @@ export function RouteList() {
         </div>
 
         {/* ── Card grid ── */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', justifyContent: 'flex-start' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', justifyContent: 'center' }}>
         {filteredRoutes.map((route, routeIndex) => {
+          const markerColor = route.color || ROUTE_COLORS[routeIndex % ROUTE_COLORS.length]
           const cardPanel = getCardPanel(route.id)
-          const ep = editPanelState[route.id] ?? { name: route.name, code: route.code, shift: route.shift, color: route.color || 'hsl(var(--primary))' }
+          const ep = editPanelState[route.id] ?? { name: route.name, code: route.code, shift: route.shift, color: route.color || markerColor, labels: route.labels ?? ['Daily', 'Weekday', 'Alt 1', 'Alt 2'] }
           return (
           <div key={route.id}>
             {/* ── Route Card ── */}
-            <div style={{ width: 340, height: 520, borderRadius: 22, overflow: 'hidden', position: 'relative', background: 'hsl(var(--card))', boxShadow: '0 8px 32px hsl(var(--primary) / 12%), 0 2px 8px rgba(0,0,0,0.07), 0 0 0 1.5px hsl(var(--primary) / 18%)', border: 'none' }}>
+            <div style={{ width: 340, height: 520, borderRadius: 22, overflow: 'hidden', position: 'relative', background: 'hsl(var(--card))', boxShadow: `0 8px 36px ${markerColor}38, 0 2px 10px rgba(0,0,0,0.12), 0 0 0 2px ${markerColor}55`, border: 'none' }}>
               {/* Sliding wrapper */}
               <div style={{ position: 'relative', zIndex: 1, display: 'flex', width: 1020, height: '100%', transform: cardPanel.edit ? 'translateX(-680px)' : cardPanel.info ? 'translateX(-340px)' : 'translateX(0)', transition: 'transform 0.38s cubic-bezier(0.4,0,0.2,1)' }}>
 
@@ -981,7 +978,12 @@ export function RouteList() {
                 <div style={{ width: 340, flexShrink: 0, display: 'flex', flexDirection: 'column', height: 520 }}>
 
                   {/* ── Colored header band ── */}
-                  <div style={{ position: 'relative', height: 138, background: 'linear-gradient(140deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 88%) 60%, hsl(var(--primary) / 62%) 100%)', overflow: 'hidden', flexShrink: 0 }}>
+                  <div style={{ position: 'relative', height: 138, background: `linear-gradient(140deg, ${markerColor} 0%, ${markerColor}dd 60%, ${markerColor}99 100%)`, overflow: 'hidden', flexShrink: 0 }}>
+                    {/* Decorative circles behind */}
+                    <div style={{ position: 'absolute', width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', top: -60, right: -40 }} />
+                    <div style={{ position: 'absolute', width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', bottom: -30, left: 20 }} />
+                    <div style={{ position: 'absolute', width: 60, height: 60, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', top: 10, right: 60 }} />
+
                     {/* Header content */}
                     <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'flex-start', gap: '0.85rem', padding: '1.1rem 1.2rem 0' }}>
                       {/* Truck avatar */}
@@ -1004,55 +1006,144 @@ export function RouteList() {
                       </div>
                     </div>
 
+                    {/* Bottom wave */}
+                    <svg viewBox="0 0 340 24" style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: 24 }} preserveAspectRatio="none">
+                      <path d="M0 24 L0 10 Q85 0 170 12 Q255 24 340 8 L340 24 Z" fill="hsl(var(--card))" />
+                    </svg>
                   </div>
 
                   {/* ── Body ── */}
-                  <div style={{ flex: 1, padding: '0.6rem 1.2rem 0', display: 'flex', flexDirection: 'column', gap: '0.55rem', overflow: 'hidden' }}>
+                  <div style={{ flex: 1, padding: '0.6rem 1.2rem 0', display: 'flex', flexDirection: 'column', gap: '0.32rem', overflow: 'hidden' }}>
 
-                    {/* Stops list */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.42rem' }}>
-                      {route.deliveryPoints.slice(0, 5).map((pt, i) => {
-                        const dtColor: Record<string, string> = { Daily: '#22c55e', Weekday: '#3b82f6', 'Alt 1': '#eab308', 'Alt 2': '#a855f7' }
-                        const dc = dtColor[pt.delivery] ?? 'hsl(var(--primary))'
+                    {/* Stops list — show 3 only */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.38rem' }}>
+                      {route.deliveryPoints.slice(0, 3).map((pt, i) => {
                         return (
-                          <div key={pt.code} style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', fontSize: '0.81rem', background: 'hsl(var(--muted)/0.5)', borderRadius: 10, padding: '0.42rem 0.65rem', border: '1px solid hsl(var(--border)/0.6)', transition: 'background 0.15s' }}>
-                            <span style={{ width: 22, height: 22, borderRadius: 7, background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 60%))', color: 'hsl(var(--primary-foreground))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 800, flexShrink: 0, boxShadow: '0 2px 6px hsl(var(--primary) / 30%)' }}>{i + 1}</span>
+                          <div key={pt.code} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.81rem', background: 'hsl(var(--muted)/0.5)', borderRadius: 10, padding: '0.38rem 0.6rem', border: '1px solid hsl(var(--border)/0.6)' }}>
+                            <span style={{ width: 20, height: 20, borderRadius: 6, background: `linear-gradient(135deg, ${markerColor}dd, ${markerColor}88)`, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.58rem', fontWeight: 800, flexShrink: 0, boxShadow: `0 2px 6px ${markerColor}44` }}>{i + 1}</span>
                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, color: 'hsl(var(--foreground))', fontWeight: 600 }}>{pt.name}</span>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.62rem', fontWeight: 700, color: dc, background: `${dc}14`, padding: '1px 6px', borderRadius: 5, border: `1px solid ${dc}28`, flexShrink: 0 }}>
-                              <span style={{ width: 5, height: 5, borderRadius: '50%', background: dc, display: 'inline-block', boxShadow: `0 0 4px ${dc}` }} />
+                            <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.6rem', fontWeight: 600, color: markerColor, background: `${markerColor}18`, padding: '1px 7px', borderRadius: '999px', border: `1px solid ${markerColor}44`, flexShrink: 0 }}>
                               {pt.delivery}
                             </span>
                           </div>
                         )
                       })}
-                      {route.deliveryPoints.length > 5 && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', color: 'hsl(var(--muted-foreground))', paddingLeft: 6, fontWeight: 600 }}>
-                          <span style={{ width: 22, height: 22, borderRadius: 7, background: 'hsl(var(--primary) / 9%)', border: '1px dashed hsl(var(--primary) / 35%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: 'hsl(var(--primary))', fontWeight: 800 }}>+{route.deliveryPoints.length - 5}</span>
-                          more stops
-                        </div>
-                      )}
                       {route.deliveryPoints.length === 0 && (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '1.5rem 0', color: 'hsl(var(--muted-foreground))' }}>
-                          <MapPin style={{ width: 16, height: 16, opacity: 0.4 }} />
-                          <span style={{ fontSize: '0.78rem', fontStyle: 'italic' }}>No delivery points yet</span>
+                          <MapPin style={{ width: 15, height: 15, opacity: 0.4 }} />
+                          <span style={{ fontSize: '0.75rem', fontStyle: 'italic' }}>No delivery points yet</span>
                         </div>
                       )}
                     </div>
 
-                    {/* Delivery type legend */}
-                    {route.deliveryPoints.length > 0 && (() => {
-                      const dtColor: Record<string, string> = { Daily: '#22c55e', Weekday: '#3b82f6', 'Alt 1': '#eab308', 'Alt 2': '#a855f7' }
-                      const counts = Object.entries(
-                        route.deliveryPoints.reduce<Record<string, number>>((acc, p) => { acc[p.delivery] = (acc[p.delivery] ?? 0) + 1; return acc }, {})
-                      )
+                    {/* +N more locations button */}
+                    {route.deliveryPoints.length > 3 && (
+                      <button
+                        onClick={() => { setCurrentRouteId(route.id); setDetailDialogOpen(true) }}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.71rem', fontWeight: 700, color: markerColor, background: `${markerColor}12`, border: `1px dashed ${markerColor}50`, borderRadius: 8, padding: '0.3rem 0.6rem', cursor: 'pointer', transition: 'background 0.15s', width: '100%' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = `${markerColor}22`)}
+                        onMouseLeave={e => (e.currentTarget.style.background = `${markerColor}12`)}
+                      >
+                        +{route.deliveryPoints.length - 3} more locations &nbsp;&rsaquo; view all
+                      </button>
+                    )}
+
+                    {/* Divider */}
+                    {route.deliveryPoints.length > 0 && (
+                      <div style={{ height: 1, background: 'hsl(var(--border)/0.5)', margin: '0.1rem 0' }} />
+                    )}
+
+                    {/* Delivery type badges — centered + interactive */}
+                    {(() => {
+                      const grouped = route.deliveryPoints.reduce<Record<string, DeliveryPoint[]>>((acc, p) => {
+                        if (!acc[p.delivery]) acc[p.delivery] = []
+                        acc[p.delivery].push(p)
+                        return acc
+                      }, {})
                       return (
-                        <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginTop: 'auto', paddingTop: '0.2rem' }}>
-                          {counts.map(([type, count]) => (
-                            <span key={type} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: `${dtColor[type]}10`, color: dtColor[type], fontSize: '0.67rem', fontWeight: 700, padding: '2px 8px', borderRadius: 999, border: `1px solid ${dtColor[type]}28` }}>
-                              <span style={{ width: 5, height: 5, borderRadius: '50%', background: dtColor[type], display: 'inline-block' }} />
-                              {type} · {count}
-                            </span>
-                          ))}
+                        <div style={{ display: 'flex', gap: '0.28rem', flexWrap: 'wrap', justifyContent: 'center', paddingBottom: '0.1rem' }}>
+                          {Object.entries(grouped).map(([type, pts]) => {
+                            const popKey = `${route.id}-badge-${type}`
+                            const isOpen = badgePopover === popKey
+                            return (
+                              <Popover key={type} open={isOpen} onOpenChange={open => setBadgePopover(open ? popKey : null)}>
+                                <PopoverTrigger asChild>
+                                  <button style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: isOpen ? `${markerColor}28` : `${markerColor}18`, color: markerColor, fontSize: '0.72rem', fontWeight: 600, padding: '2px 10px', borderRadius: '999px', border: `1px solid ${markerColor}44`, cursor: 'pointer', transition: 'background 0.15s' }}>
+                                    {type} · {pts.length}
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-56 p-0" align="center" side="top">
+                                  {/* Header */}
+                                  <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-xs font-bold" style={{ color: markerColor }}>{type}</span>
+                                      <span className="text-[10px] text-muted-foreground">({pts.length})</span>
+                                    </div>
+                                    <button
+                                      className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg transition-colors hover:opacity-80"
+                                      style={{ background: `${markerColor}18`, color: markerColor }}
+                                      onClick={() => {
+                                        setBadgePopover(null)
+                                        setCurrentRouteId(route.id)
+                                        setNewPoint(prev => ({ ...prev, delivery: type, code: '', name: '' }))
+                                        setCodeError('')
+                                        setAddPointDialogOpen(true)
+                                      }}
+                                    >
+                                      <Plus className="size-3" /> Add
+                                    </button>
+                                  </div>
+                                  {/* Point list */}
+                                  <div className="divide-y divide-border/40 max-h-44 overflow-y-auto">
+                                    {pts.map(pt => (
+                                      <div key={pt.code} className="flex items-center gap-2 px-3 py-1.5 group hover:bg-muted/50 transition-colors">
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-xs font-semibold truncate text-foreground leading-tight">{pt.name || pt.code}</p>
+                                          <p className="text-[10px] text-muted-foreground font-mono">{pt.code}</p>
+                                        </div>
+                                        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                          <button
+                                            className="p-1 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                                            title="Edit in table"
+                                            onClick={() => { setBadgePopover(null); setCurrentRouteId(route.id); setDetailDialogOpen(true) }}
+                                          >
+                                            <Edit2 className="size-3" />
+                                          </button>
+                                          <button
+                                            className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                                            title="Delete"
+                                            onClick={() => {
+                                              setBadgePopover(null)
+                                              setRoutes(prev => prev.map(r => r.id !== route.id ? r : {
+                                                ...r,
+                                                deliveryPoints: r.deliveryPoints.filter(p => p.code !== pt.code),
+                                                updatedAt: new Date().toISOString()
+                                              }))
+                                              setHasUnsavedChanges(true)
+                                            }}
+                                          >
+                                            <Trash2 className="size-3" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            )
+                          })}
+                          {/* Add new — always visible */}
+                          <button
+                            onClick={() => {
+                              setCurrentRouteId(route.id)
+                              setNewPoint(prev => ({ ...prev, code: '', name: '' }))
+                              setCodeError('')
+                              setAddPointDialogOpen(true)
+                            }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: `${markerColor}18`, color: markerColor, fontSize: '0.72rem', fontWeight: 600, padding: '2px 10px', borderRadius: '999px', border: `1px dashed ${markerColor}60`, cursor: 'pointer', transition: 'background 0.15s' }}
+                          >
+                            <Plus style={{ width: 10, height: 10 }} /> New
+                          </button>
                         </div>
                       )
                     })()}
@@ -1061,16 +1152,16 @@ export function RouteList() {
                   {/* Footer */}
                   <div style={{ padding: '0.65rem 1.2rem 1.1rem', display: 'flex', gap: '0.45rem' }}>
                     {isEditMode && (
-                      <button onClick={() => setCardPanels(prev => ({ ...prev, [route.id]: { info: false, edit: true } }))} style={{ ...cardBtnStyle(), flex: 1 }}>
+                      <button onClick={() => setCardPanels(prev => ({ ...prev, [route.id]: { info: false, edit: true } }))} style={{ flex: 1, borderRadius: 10, fontSize: '0.8rem', fontWeight: 700, padding: '0.5rem 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', background: markerColor, color: '#fff', border: 'none', cursor: 'pointer', boxShadow: `0 3px 10px ${markerColor}44` }}>
                         <Edit2 style={{ width: 11, height: 11 }} /> Edit
                       </button>
                     )}
-                    <button onClick={() => setCardPanels(prev => ({ ...prev, [route.id]: { edit: false, info: true } }))} style={{ ...cardBtnStyle(), flex: 1 }}>
+                    <button onClick={() => setCardPanels(prev => ({ ...prev, [route.id]: { edit: false, info: true } }))} style={{ flex: 1, borderRadius: 10, fontSize: '0.8rem', fontWeight: 700, padding: '0.5rem 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', background: markerColor, color: '#fff', border: 'none', cursor: 'pointer', boxShadow: `0 3px 10px ${markerColor}44` }}>
                       <History style={{ width: 11, height: 11 }} /> Log
                     </button>
                     <button
                       onClick={() => { setCurrentRouteId(route.id); setDetailDialogOpen(true) }}
-                      style={{ flex: 1.8, borderRadius: 10, fontSize: '0.8rem', fontWeight: 800, padding: '0.5rem 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 82%) 100%)', color: 'hsl(var(--primary-foreground))', border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px hsl(var(--primary) / 30%)', letterSpacing: '0.02em' }}
+                      style={{ flex: 1.8, borderRadius: 10, fontSize: '0.8rem', fontWeight: 800, padding: '0.5rem 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', background: `linear-gradient(135deg, ${markerColor} 0%, ${markerColor}cc 100%)`, color: '#fff', border: 'none', cursor: 'pointer', boxShadow: `0 4px 14px ${markerColor}44`, letterSpacing: '0.02em' }}
                     >
                       <List style={{ width: 12, height: 12 }} /> View Table
                     </button>
@@ -1100,7 +1191,7 @@ export function RouteList() {
                         <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'hsl(var(--foreground))', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                           Changelog
                           {cl && !cl.loading && cl.entries.length > 0 && (
-                            <span style={{ fontSize: '0.65rem', fontWeight: 700, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 999, padding: '1px 6px' }}>{cl.entries.length}</span>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 700, background: markerColor, color: '#fff', borderRadius: 999, padding: '1px 6px' }}>{cl.entries.length}</span>
                           )}
                         </div>
                         <div style={{ fontSize: '0.65rem', color: 'hsl(var(--muted-foreground))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{route.name}</div>
@@ -1108,8 +1199,8 @@ export function RouteList() {
                     </div>
 
                     {/* Updated timestamp banner */}
-                    <div style={{ padding: '0.6rem 1.25rem', background: 'hsl(var(--primary) / 5%)', borderBottom: '1px solid hsl(var(--border)/0.5)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: route.updatedAt ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))', flexShrink: 0 }} />
+                    <div style={{ padding: '0.6rem 1.25rem', background: `${markerColor}20`, borderBottom: `1px solid ${markerColor}35`, display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: route.updatedAt ? markerColor : 'hsl(var(--muted-foreground))', flexShrink: 0 }} />
                       <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'hsl(var(--muted-foreground))' }}>Updated</span>
                       <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'hsl(var(--foreground))', flex: 1 }}>
                         {route.updatedAt ? formatRelative(route.updatedAt) : '—'}
@@ -1138,8 +1229,8 @@ export function RouteList() {
                           <div key={entry.id} style={{ display: 'flex', gap: '0.65rem', paddingBottom: i < cl.entries.length - 1 ? '0.75rem' : 0, marginBottom: i < cl.entries.length - 1 ? '0.75rem' : 0, borderBottom: i < cl.entries.length - 1 ? '1px solid hsl(var(--border)/0.5)' : 'none' }}>
                             {/* timeline dot */}
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, paddingTop: 3 }}>
-                              <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'hsl(var(--primary))', flexShrink: 0 }} />
-                              {i < cl.entries.length - 1 && <div style={{ width: 1, flex: 1, background: 'hsl(var(--primary) / 20%)', marginTop: 3 }} />}
+                              <div style={{ width: 8, height: 8, borderRadius: '50%', background: markerColor, flexShrink: 0 }} />
+                              {i < cl.entries.length - 1 && <div style={{ width: 1, flex: 1, background: `${markerColor}30`, marginTop: 3 }} />}
                             </div>
                             {/* content */}
                             <div style={{ flex: 1, minWidth: 0 }}>
@@ -1155,7 +1246,7 @@ export function RouteList() {
                     <div style={{ padding: '0.75rem 1.25rem 1.25rem', borderTop: '1px solid hsl(var(--border))', flexShrink: 0 }}>
                       <button
                         onClick={() => setCardPanels(prev => ({ ...prev, [route.id]: { info: false, edit: false } }))}
-                        style={{ ...cardBtnStyle(), width: '100%' }}
+                        style={{ width: '100%', borderRadius: 10, fontSize: '0.8rem', fontWeight: 700, padding: '0.5rem 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', background: markerColor, color: '#fff', border: 'none', cursor: 'pointer', boxShadow: `0 3px 10px ${markerColor}44` }}
                       >
                         <ArrowDown style={{ width: 12, height: 12, transform: 'rotate(90deg)' }} /> Back to card
                       </button>
@@ -1167,28 +1258,28 @@ export function RouteList() {
                 {/* ── Panel 3: Edit ── */}
                 <div style={{ width: 340, flexShrink: 0, height: 520, display: 'flex', flexDirection: 'column', background: 'hsl(var(--card))' }}>
                   <div style={{ padding: '1rem 1.25rem 0.75rem', background: 'hsl(var(--background))', borderBottom: '1px solid hsl(var(--border))', display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0 }}>
-                    <div style={{ width: 30, height: 30, borderRadius: 8, background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 75%))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div style={{ width: 30, height: 30, borderRadius: 8, background: `linear-gradient(135deg, ${markerColor}, ${markerColor}bb)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <Edit2 style={{ color: '#fff', width: 13, height: 13 }} />
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'hsl(var(--foreground))' }}>Edit Card</div>
-                      <div style={{ fontSize: '0.67rem', color: 'hsl(var(--muted-foreground))' }}>Route · Code · Shift</div>
+                      <div style={{ fontSize: '0.67rem', color: 'hsl(var(--muted-foreground))' }}>Route · Code · Labels</div>
                     </div>
                   </div>
                   <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div>
                       <label style={{ fontSize: '0.67rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'hsl(var(--muted-foreground))', display: 'flex', alignItems: 'center', gap: 4, marginBottom: '0.4rem' }}>Route Name</label>
-                      <input value={ep.name} onChange={e => setEditPanelState(prev => ({ ...prev, [route.id]: { ...ep, name: e.target.value } }))} placeholder="Route name..." style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: 8, border: '1.5px solid hsl(var(--border))', fontSize: '0.84rem', fontWeight: 600, color: 'hsl(var(--foreground))', background: 'hsl(var(--background))', outline: 'none', boxSizing: 'border-box' }} onFocus={e => e.target.style.borderColor = 'hsl(var(--primary))'} onBlur={e => e.target.style.borderColor = 'hsl(var(--border))'} />
+                      <input value={ep.name} onChange={e => setEditPanelState(prev => ({ ...prev, [route.id]: { ...ep, name: e.target.value } }))} placeholder="Route name..." style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: 8, border: '1.5px solid hsl(var(--border))', fontSize: '0.84rem', fontWeight: 600, color: 'hsl(var(--foreground))', background: 'hsl(var(--background))', outline: 'none', boxSizing: 'border-box' }} onFocus={e => e.target.style.borderColor = markerColor} onBlur={e => e.target.style.borderColor = 'hsl(var(--border))'} />
                     </div>
                     <div>
                       <label style={{ fontSize: '0.67rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'hsl(var(--muted-foreground))', display: 'flex', alignItems: 'center', gap: 4, marginBottom: '0.4rem' }}>Code</label>
-                      <input value={ep.code} onChange={e => setEditPanelState(prev => ({ ...prev, [route.id]: { ...ep, code: e.target.value } }))} placeholder="Route code..." style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: 8, border: '1.5px solid hsl(var(--border))', fontSize: '0.84rem', fontWeight: 600, color: 'hsl(var(--foreground))', background: 'hsl(var(--background))', outline: 'none', boxSizing: 'border-box', fontFamily: 'monospace' }} onFocus={e => e.target.style.borderColor = 'hsl(var(--primary))'} onBlur={e => e.target.style.borderColor = 'hsl(var(--border))'} />
+                      <input value={ep.code} onChange={e => setEditPanelState(prev => ({ ...prev, [route.id]: { ...ep, code: e.target.value } }))} placeholder="Route code..." style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: 8, border: '1.5px solid hsl(var(--border))', fontSize: '0.84rem', fontWeight: 600, color: 'hsl(var(--foreground))', background: 'hsl(var(--background))', outline: 'none', boxSizing: 'border-box', fontFamily: 'monospace' }} onFocus={e => e.target.style.borderColor = markerColor} onBlur={e => e.target.style.borderColor = 'hsl(var(--border))'} />
                     </div>
                     <div>
                       <label style={{ fontSize: '0.67rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'hsl(var(--muted-foreground))', display: 'flex', alignItems: 'center', gap: 4, marginBottom: '0.4rem' }}>Shift</label>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         {['AM', 'PM'].map(opt => (
-                          <button key={opt} onClick={() => setEditPanelState(prev => ({ ...prev, [route.id]: { ...ep, shift: opt } }))} style={{ flex: 1, padding: '0.55rem 0', borderRadius: 8, border: `2px solid ${ep.shift === opt ? 'hsl(var(--primary))' : 'hsl(var(--border))'}`, background: ep.shift === opt ? 'hsl(var(--primary))' : 'hsl(var(--muted))', color: ep.shift === opt ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s' }}>{opt}</button>
+                          <button key={opt} onClick={() => setEditPanelState(prev => ({ ...prev, [route.id]: { ...ep, shift: opt } }))} style={{ flex: 1, padding: '0.55rem 0', borderRadius: 8, border: `2px solid ${ep.shift === opt ? ep.color : 'hsl(var(--border))'}`, background: ep.shift === opt ? ep.color : 'hsl(var(--muted))', color: ep.shift === opt ? '#fff' : 'hsl(var(--muted-foreground))', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s' }}>{opt}</button>
                         ))}
                       </div>
                     </div>
@@ -1200,6 +1291,51 @@ export function RouteList() {
                         <button onClick={() => setEditPanelState(prev => ({ ...prev, [route.id]: { ...ep, color: ROUTE_COLORS[routeIndex % ROUTE_COLORS.length] } }))} style={{ marginLeft: 'auto', fontSize: '0.68rem', padding: '0.2rem 0.55rem', borderRadius: 6, border: '1px solid hsl(var(--border))', background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))', cursor: 'pointer' }}>Reset</button>
                       </div>
                     </div>
+                    {/* Labels manager */}
+                    <div>
+                      <label style={{ fontSize: '0.67rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'hsl(var(--muted-foreground))', display: 'flex', alignItems: 'center', gap: 4, marginBottom: '0.4rem' }}>Labels</label>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.32rem', marginBottom: '0.45rem', minHeight: 24 }}>
+                        {ep.labels.map((lbl) => {
+                          return (
+                            <span key={lbl} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: `${ep.color}18`, color: ep.color, fontSize: '0.72rem', fontWeight: 600, padding: '2px 10px 2px 11px', borderRadius: '999px', border: `1px solid ${ep.color}44` }}>
+                              {lbl}
+                              <button onClick={() => setEditPanelState(prev => ({ ...prev, [route.id]: { ...ep, labels: ep.labels.filter(l => l !== lbl) } }))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: ep.color, padding: '0 1px', display: 'flex', lineHeight: 1, opacity: 0.75, fontSize: '0.85rem' }}>×</button>
+                            </span>
+                          )
+                        })}
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.4rem' }}>
+                        <input
+                          value={editLabelInput[route.id] ?? ''}
+                          onChange={e => setEditLabelInput(prev => ({ ...prev, [route.id]: e.target.value }))}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' || e.key === ',') {
+                              e.preventDefault()
+                              const val = (editLabelInput[route.id] ?? '').trim()
+                              if (val && !ep.labels.includes(val)) {
+                                setEditPanelState(prev => ({ ...prev, [route.id]: { ...ep, labels: [...ep.labels, val] } }))
+                                setEditLabelInput(prev => ({ ...prev, [route.id]: '' }))
+                              }
+                            }
+                          }}
+                          placeholder="New label, press Enter"
+                          style={{ flex: 1, padding: '0.38rem 0.65rem', borderRadius: 7, border: '1.5px solid hsl(var(--border))', fontSize: '0.78rem', color: 'hsl(var(--foreground))', background: 'hsl(var(--background))', outline: 'none', boxSizing: 'border-box' }}
+                          onFocus={e => e.target.style.borderColor = markerColor}
+                          onBlur={e => e.target.style.borderColor = 'hsl(var(--border))'}
+                        />
+                        <button
+                          onClick={() => {
+                            const val = (editLabelInput[route.id] ?? '').trim()
+                            if (val && !ep.labels.includes(val)) {
+                              setEditPanelState(prev => ({ ...prev, [route.id]: { ...ep, labels: [...ep.labels, val] } }))
+                              setEditLabelInput(prev => ({ ...prev, [route.id]: '' }))
+                            }
+                          }}
+                          style={{ padding: '0.38rem 0.8rem', borderRadius: 7, background: markerColor, color: '#fff', border: 'none', fontSize: '0.82rem', fontWeight: 800, cursor: 'pointer' }}
+                        >+</button>
+                      </div>
+                    </div>
+
                     <button onClick={() => { setCardPanels(prev => ({ ...prev, [route.id]: { info: false, edit: false } })); setRouteToDelete(route); setDeleteRouteConfirmOpen(true) }} style={{ borderRadius: 8, fontSize: '0.75rem', fontWeight: 600, padding: '0.5rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5', cursor: 'pointer', width: '100%', justifyContent: 'center' }}>
                       <Trash2 style={{ width: 13, height: 13 }} /> Delete Route
                     </button>
@@ -1208,26 +1344,32 @@ export function RouteList() {
                     <button onClick={() => { setCardPanels(prev => ({ ...prev, [route.id]: { info: false, edit: false } })); setEditPanelState(prev => { const n = { ...prev }; delete n[route.id]; return n }) }} style={{ flex: 1, borderRadius: 8, fontSize: '0.8rem', fontWeight: 600, padding: '0.45rem 0', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '0.35rem', background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))', border: '1px solid hsl(var(--border))', cursor: 'pointer' }}>
                       <X style={{ width: 12, height: 12 }} /> Cancel
                     </button>
-                    <button
-                      onClick={() => {
-                        if (!ep.name || !ep.code) { toast.error('Name and Code required'); return }
-                        setHasUnsavedChanges(true)
-                        setRoutes(prev => prev.map(r => r.id === route.id ? { ...r, name: ep.name, code: ep.code, shift: ep.shift, color: ep.color } : r))
-                        setCardPanels(prev => ({ ...prev, [route.id]: { info: false, edit: false } }))
-                        setEditPanelState(prev => { const n = { ...prev }; delete n[route.id]; return n })
-                        toast.success('Route updated', { description: `"${ep.name}" · remember to save.`, icon: <CheckCircle2 className="size-4 text-primary" />, duration: 3000 })
-                      }}
-                      style={{ flex: 1, borderRadius: 8, fontSize: '0.8rem', fontWeight: 700, padding: '0.45rem 0', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '0.35rem', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', cursor: 'pointer' }}
-                    >
-                      <Check style={{ width: 12, height: 12 }} /> Save
-                    </button>
+                    {(() => {
+                      const hasEditChanges = ep.name !== route.name || ep.code !== route.code || ep.shift !== route.shift || ep.color !== (route.color || markerColor) || ep.labels.join(',') !== (route.labels ?? ['Daily', 'Weekday', 'Alt 1', 'Alt 2']).join(',')
+                      return (
+                        <button
+                          disabled={!hasEditChanges}
+                          onClick={() => {
+                            if (!ep.name || !ep.code) { toast.error('Name and Code required'); return }
+                            setHasUnsavedChanges(true)
+                            setRoutes(prev => prev.map(r => r.id === route.id ? { ...r, name: ep.name, code: ep.code, shift: ep.shift, color: ep.color, labels: ep.labels } : r))
+                            setCardPanels(prev => ({ ...prev, [route.id]: { info: false, edit: false } }))
+                            setEditPanelState(prev => { const n = { ...prev }; delete n[route.id]; return n })
+                            toast.success('Route updated', { description: `"${ep.name}" · remember to save.`, icon: <CheckCircle2 className="size-4 text-primary" />, duration: 3000 })
+                          }}
+                          style={{ flex: 1, borderRadius: 8, fontSize: '0.8rem', fontWeight: 700, padding: '0.45rem 0', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '0.35rem', background: hasEditChanges ? markerColor : 'hsl(var(--muted))', color: hasEditChanges ? '#fff' : 'hsl(var(--muted-foreground))', border: 'none', cursor: hasEditChanges ? 'pointer' : 'not-allowed', opacity: hasEditChanges ? 1 : 0.5, transition: 'all 0.15s' }}
+                        >
+                          <Check style={{ width: 12, height: 12 }} /> Save
+                        </button>
+                      )
+                    })()}
                   </div>
                 </div>
 
               </div>{/* end sliding track */}
             </div>{/* end card */}
 
-                  <Dialog open={detailDialogOpen && route.id === currentRouteId} onOpenChange={(open) => { if (!open) { setDetailDialogOpen(false); setDetailFullscreen(false); setSelectedRows([]) } }}>
+                  <Dialog open={detailDialogOpen && route.id === currentRouteId} onOpenChange={(open) => { if (!open) { setDetailDialogOpen(false); setDetailFullscreen(false); setDialogView('table'); setSelectedRows([]) } }}>
                   <DialogContent
                     className="p-0 gap-0 flex flex-col overflow-hidden transition-[width,height,max-width,border-radius] duration-300 ease-in-out"
                     style={detailFullscreen
@@ -1236,27 +1378,50 @@ export function RouteList() {
                     }
                   >
                     {/* Header */}
-                    <div className="shrink-0 border-b border-border">
-                      <div className="flex items-center gap-4 px-5 py-4">
+                    <div className="shrink-0 border-b border-border" style={{ background: `linear-gradient(135deg, ${markerColor}20 0%, ${markerColor}08 60%, transparent 100%)` }}>
+                      {/* Color accent strip */}
+                      <div style={{ height: 3, background: `linear-gradient(90deg, ${markerColor} 0%, ${markerColor}66 100%)` }} />
+                      <div className="px-5 py-3.5 flex items-center gap-3">
                         {(route.name + " " + route.code).toLowerCase().includes("kl")
-                          ? <img src="/kl-flag.png" className="object-cover rounded shadow-sm ring-1 ring-black/10 dark:ring-white/10 shrink-0" style={{ width: 48, height: 30 }} alt="KL" />
+                          ? <img src="/kl-flag.png" className="object-cover rounded-lg shadow-sm ring-1 ring-black/10 dark:ring-white/10 shrink-0" style={{ width: 48, height: 30 }} alt="KL" />
                           : (route.name + " " + route.code).toLowerCase().includes("sel")
-                          ? <img src="/selangor-flag.png" className="object-cover rounded shadow-sm ring-1 ring-black/10 dark:ring-white/10 shrink-0" style={{ width: 48, height: 30 }} alt="Selangor" />
+                          ? <img src="/selangor-flag.png" className="object-cover rounded-lg shadow-sm ring-1 ring-black/10 dark:ring-white/10 shrink-0" style={{ width: 48, height: 30 }} alt="Selangor" />
                           : (
-                            <div style={{ width: 38, height: 38, borderRadius: 12, background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 65%))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px hsl(var(--primary) / 28%)' }}>
-                              <Truck style={{ width: 18, height: 18, color: 'hsl(var(--primary-foreground))' }} />
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${markerColor}25`, boxShadow: `0 0 0 1.5px ${markerColor}50` }}>
+                              <Truck className="size-5" style={{ color: markerColor }} />
                             </div>
                           )}
                         <div className="flex-1 min-w-0">
-                          <h1 className="text-base font-bold leading-tight truncate">{route.name}</h1>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 700, fontFamily: 'monospace', background: 'hsl(var(--primary) / 10%)', color: 'hsl(var(--primary))', padding: '1px 7px', borderRadius: 5, border: '1px solid hsl(var(--primary) / 25%)' }}>{route.code}</span>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'hsl(var(--muted-foreground))', background: 'hsl(var(--muted))', padding: '1px 7px', borderRadius: 5, border: '1px solid hsl(var(--border))' }}>{route.shift}</span>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'hsl(var(--primary))' }}>{route.deliveryPoints.length} stops</span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h1 className="text-base font-bold leading-tight truncate">{route.name}</h1>
+                            {route.code && (
+                              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md shrink-0" style={{ background: `${markerColor}30`, color: markerColor, boxShadow: `0 0 0 1px ${markerColor}40` }}>
+                                {route.code}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[10px] text-muted-foreground">
+                              {deliveryPoints.filter(p => isDeliveryActive(p.delivery)).length}/{deliveryPoints.length} active
+                            </span>
+                            {route.shift && (
+                              <span className="text-[10px] font-semibold px-1.5 py-px rounded-full" style={{ background: `${markerColor}28`, color: markerColor }}>
+                                {route.shift}
+                              </span>
+                            )}
                           </div>
                         </div>
-                        <Button variant="outline" size="sm" onClick={() => openSettings(route.id)} className="shrink-0 flex items-center gap-2 h-9 rounded-xl text-xs px-4">
-                          <Settings className="size-4" />Settings
+                        <Button variant="ghost" size="sm" onClick={() => openSettings(route.id)} className="shrink-0 flex items-center gap-1.5 h-8 rounded-lg text-xs px-3 text-muted-foreground hover:text-foreground">
+                          <Settings className="size-3.5" />Settings
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDialogView(v => v === 'table' ? 'map' : 'table')}
+                          className="shrink-0 flex items-center gap-1.5 h-8 rounded-lg text-xs px-3 transition-colors"
+                          style={dialogView === 'map' ? { background: `${markerColor}30`, color: markerColor, boxShadow: `0 0 0 1px ${markerColor}40` } : {}}
+                        >
+                          {dialogView === 'table' ? <><Map className="size-3.5" />Map</> : <><List className="size-3.5" />Table</>}
                         </Button>
                         <button
                           onClick={() => setDetailFullscreen(f => !f)}
@@ -1267,11 +1432,16 @@ export function RouteList() {
                         </button>
                       </div>
                     </div>
-                    {/* Table */}
+                    {/* Table / Map */}
                     <div className="flex-1 overflow-auto scroll-smooth">
+                    {dialogView === 'map' ? (
+                      <div className="h-full min-h-[400px]">
+                        <DeliveryMap deliveryPoints={deliveryPoints} scrollZoom={true} />
+                      </div>
+                    ) : (
                           <table className="border-collapse text-[12px] whitespace-nowrap min-w-max w-full text-center">
-                            <thead className="bg-muted/70 sticky top-0 z-10 backdrop-blur-sm">
-                              <tr className="border-b border-border">
+                            <thead className="bg-muted/80 sticky top-0 z-10 backdrop-blur-sm">
+                              <tr className="border-b-2" style={{ borderBottomColor: `${markerColor}70` }}>
                                 {isEditMode && (
                                   <th className="px-4 h-10 text-center w-12">
                                     <input
@@ -1310,7 +1480,7 @@ export function RouteList() {
                                   : hasRowPending
                                   ? 'border-amber-400/40 dark:border-amber-500/30 bg-amber-50/40 dark:bg-amber-900/10'
                                   : isActive
-                                  ? index % 2 === 0 ? 'border-border/30 hover:bg-primary/5' : 'border-border/30 bg-muted/25 hover:bg-primary/5'
+                                  ? index % 2 === 0 ? 'border-border/40 hover:bg-primary/8' : 'border-border/40 bg-muted/40 hover:bg-primary/8'
                                   : 'border-border/30 opacity-40 hover:opacity-60'
                               }`}>
                                 {isEditMode && (
@@ -1325,7 +1495,11 @@ export function RouteList() {
                                 )}
                                 {columns.filter(c => c.visible).map(col => {
                                   if (col.key === 'no') return (
-                                    <td key="no" className="px-4 h-10 text-center text-[10px] text-muted-foreground tabular-nums font-semibold">{index + 1}</td>
+                                    <td key="no" className="px-4 h-10 text-center">
+                                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-md text-[10px] tabular-nums font-bold" style={{ background: `${markerColor}28`, color: markerColor }}>
+                                        {index + 1}
+                                      </span>
+                                    </td>
                                   )
                                   if (col.key === 'code') return (
                                     <td key="code" className="px-4 h-10 text-center">
@@ -1490,11 +1664,11 @@ export function RouteList() {
                                 {columns.find(c => c.key === 'action' && c.visible) && (
                                   <td className="px-3 h-9 text-center">
                                     <button
-                                      className={`inline-flex items-center justify-center p-1 rounded transition-colors duration-150 ${
-                                        isActive
-                                          ? 'text-green-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20'
-                                          : 'text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
-                                      }`}
+                                      className="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-150 hover:scale-110 active:scale-95"
+                                      style={isActive
+                                        ? { color: markerColor, background: `${markerColor}28`, boxShadow: `0 0 0 1px ${markerColor}35` }
+                                        : { color: 'hsl(var(--muted-foreground))', background: 'hsl(var(--muted))', opacity: 0.5 }
+                                      }
                                       onClick={() => { setSelectedPoint(point); setInfoModalOpen(true) }}
                                     >
                                       <Info className="size-3.5" />
@@ -1528,6 +1702,7 @@ export function RouteList() {
                           )}
                         </tbody>
                       </table>
+                    )}
                     </div>
                     
                     {/* Action Buttons - Show when rows are selected in Edit Mode */}
@@ -1698,16 +1873,15 @@ export function RouteList() {
                         </div>
                         
                         <div className="space-y-2">
-                          <label className="text-sm font-medium">Delivery Type</label>
+                          <label className="text-sm font-medium">Label</label>
                           <select
                             className="w-full p-2 rounded border border-border bg-background text-sm"
                             value={newPoint.delivery}
-                            onChange={(e) => setNewPoint({ ...newPoint, delivery: e.target.value as "Daily" | "Weekday" | "Alt 1" | "Alt 2" })}
+                            onChange={(e) => setNewPoint({ ...newPoint, delivery: e.target.value })}
                           >
-                            <option value="Daily">Daily</option>
-                            <option value="Weekday">Weekday</option>
-                            <option value="Alt 1">Alt 1</option>
-                            <option value="Alt 2">Alt 2</option>
+                            {(currentRoute?.labels ?? ['Daily', 'Weekday', 'Alt 1', 'Alt 2']).map(lbl => (
+                              <option key={lbl} value={lbl}>{lbl}</option>
+                            ))}
                           </select>
                         </div>
                       </div>
@@ -1773,7 +1947,7 @@ export function RouteList() {
                 }}>
                   <DialogContent className="max-w-md">
                     <DialogHeader>
-                      <DialogTitle>Edit Delivery Schedule</DialogTitle>
+                      <DialogTitle>Edit Label</DialogTitle>
                       <DialogDescription>
                         {deliveryModalCode && (() => {
                           const pt = deliveryPoints.find(p => p.code === deliveryModalCode)
@@ -1785,45 +1959,32 @@ export function RouteList() {
                     {deliveryModalCode && (() => {
                       const pt = deliveryPoints.find(p => p.code === deliveryModalCode)
                       if (!pt) return null
-                      const today = new Date()
-                      const options: { value: DeliveryPoint['delivery']; label: string; desc: string }[] = [
-                        { value: 'Daily',   label: 'Daily',   desc: 'Delivery every day' },
-                        { value: 'Alt 1',   label: 'Alt 1',   desc: 'Delivery on odd dates only' },
-                        { value: 'Alt 2',   label: 'Alt 2',   desc: 'Delivery on even dates only' },
-                        { value: 'Weekday', label: 'Weekday', desc: 'Delivery Sunday – Thursday only' },
-                      ]
+                      const routeLabels = currentRoute?.labels ?? ['Daily', 'Weekday', 'Alt 1', 'Alt 2']
                       return (
-                        <div className="space-y-3 py-2">
-                          {options.map(opt => {
-                            const optActive = isDeliveryActive(opt.value, today)
-                            return (
-                              <button
-                                key={opt.value}
-                                onClick={() => {
-                                  setDeliveryPoints(prev => prev.map(p =>
-                                    p.code === deliveryModalCode ? { ...p, delivery: opt.value } : p
-                                  ))
-                                  if (deliveryModalCode) {
-                                    setPendingCellEdits(prev => { const n = new Set(prev); n.add(`${deliveryModalCode}-delivery`); return n })
-                                  }
-                                }}
-                                className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left ${
-                                  pt.delivery === opt.value
-                                    ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
-                                    : 'border-border hover:border-primary/40 hover:bg-muted/40'
-                                }`}
-                              >
-                                <span className="text-sm font-medium w-16 shrink-0">{opt.label}</span>
-                                <span className="text-xs text-muted-foreground flex-1">{opt.desc}</span>
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                                  optActive ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400' : 'bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400'
-                                }`}>{optActive ? 'ON' : 'OFF'}</span>
-                                {pt.delivery === opt.value && (
-                                  <Check className="size-4 text-primary shrink-0" />
-                                )}
-                              </button>
-                            )
-                          })}
+                        <div className="space-y-2 py-2">
+                          <div className="flex flex-wrap gap-2">
+                            {routeLabels.map((lbl, i) => {
+                              const lc = LABEL_PALETTE[i % LABEL_PALETTE.length]
+                              const isSelected = pt.delivery === lbl
+                              return (
+                                <button
+                                  key={lbl}
+                                  onClick={() => {
+                                    setDeliveryPoints(prev => prev.map(p =>
+                                      p.code === deliveryModalCode ? { ...p, delivery: lbl } : p
+                                    ))
+                                    if (deliveryModalCode) {
+                                      setPendingCellEdits(prev => { const n = new Set(prev); n.add(`${deliveryModalCode}-delivery`); return n })
+                                    }
+                                  }}
+                                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.45rem 1rem', borderRadius: 6, border: 'none', background: isSelected ? lc : `${lc}20`, color: isSelected ? '#fff' : lc, fontSize: '0.84rem', fontWeight: 700, cursor: 'pointer', boxShadow: isSelected ? `0 2px 8px ${lc}55` : 'none', transition: 'all 0.15s' }}
+                                >
+                                  {isSelected && <Check className="size-3.5" />}
+                                  {lbl}
+                                </button>
+                              )
+                            })}
+                          </div>
 
                           <div className="flex justify-end pt-1">
                             <Button variant="outline" onClick={() => {

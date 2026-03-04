@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 
-export type ColorMode = "light" | "dark"
+export type ColorMode = "light" | "dark" | "system"
 export type ColorTheme =
   | "default"
   | "bubblegum"
@@ -9,6 +9,17 @@ export type ColorTheme =
   | "cyberpunk"
   | "northern-lights"
   | "ocean-breeze"
+
+/** Approximate background hex per theme/mode for the PWA meta theme-color tag */
+const THEME_META_BG: Record<string, { light: string; dark: string }> = {
+  "default":          { light: "#dce8f3", dark: "#0e1117" },
+  "bubblegum":        { light: "#f0d8e5", dark: "#1a2030" },
+  "candyland":        { light: "#fde8ef", dark: "#1a1428" },
+  "claude":           { light: "#faf6ef", dark: "#1a1510" },
+  "cyberpunk":        { light: "#f0f4fa", dark: "#0c0e1c" },
+  "northern-lights":  { light: "#eff7f7", dark: "#111828" },
+  "ocean-breeze":     { light: "#f0f6f8", dark: "#131e2a" },
+}
 
 export type AppFont =
   | "system"
@@ -42,10 +53,21 @@ function loadGoogleFont(googleId: string) {
 }
 
 export function useTheme() {
+  const getSystemResolved = (): "light" | "dark" =>
+    window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+
   const [mode, setMode] = useState<ColorMode>(() => {
     const stored = localStorage.getItem("color-mode") as ColorMode | null
-    if (stored === "light" || stored === "dark") return stored
-    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+    if (stored === "light" || stored === "dark" || stored === "system") return stored
+    return "system"
+  })
+
+  // resolvedMode is always "light" | "dark" — the actual applied mode
+  const [resolvedMode, setResolvedMode] = useState<"light" | "dark">(() => {
+    const stored = localStorage.getItem("color-mode") as ColorMode | null
+    if (stored === "light") return "light"
+    if (stored === "dark") return "dark"
+    return getSystemResolved()
   })
 
   const [colorTheme, setColorTheme] = useState<ColorTheme>(() => {
@@ -65,11 +87,30 @@ export function useTheme() {
     return (localStorage.getItem("text-size") as TextSize | null) ?? "16"
   })
 
-  // Color mode + theme
+  // Sync resolvedMode when mode changes
+  useEffect(() => {
+    if (mode === "system") {
+      setResolvedMode(getSystemResolved())
+    } else {
+      setResolvedMode(mode)
+    }
+  }, [mode])
+
+  // Watch system preference when mode === "system"
+  useEffect(() => {
+    if (mode !== "system") return
+    const mq = window.matchMedia("(prefers-color-scheme: dark)")
+    const handler = (e: MediaQueryListEvent) =>
+      setResolvedMode(e.matches ? "dark" : "light")
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [mode])
+
+  // Apply color mode + theme to DOM
   useEffect(() => {
     const root = document.documentElement
-    root.classList.toggle("dark", mode === "dark")
-    root.classList.toggle("light", mode === "light")
+    root.classList.toggle("dark", resolvedMode === "dark")
+    root.classList.toggle("light", resolvedMode === "light")
     if (colorTheme === "default") {
       root.removeAttribute("data-theme")
     } else {
@@ -77,17 +118,21 @@ export function useTheme() {
     }
     localStorage.setItem("color-mode", mode)
     localStorage.setItem("color-theme", colorTheme)
-    const color = mode === "dark" ? "#1a1a2e" : "#ffffff"
+
+    // Update PWA meta theme-color to match actual background
+    const metaColor =
+      THEME_META_BG[colorTheme]?.[resolvedMode] ??
+      (resolvedMode === "dark" ? "#111827" : "#f8fafc")
     const allMetas = document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
     if (allMetas.length === 0) {
       const meta = document.createElement("meta")
       meta.name = "theme-color"
-      meta.setAttribute("content", color)
+      meta.setAttribute("content", metaColor)
       document.head.appendChild(meta)
     } else {
-      allMetas.forEach((meta) => meta.setAttribute("content", color))
+      allMetas.forEach(meta => meta.setAttribute("content", metaColor))
     }
-  }, [mode, colorTheme])
+  }, [mode, resolvedMode, colorTheme])
 
   // Font
   useEffect(() => {
@@ -111,7 +156,8 @@ export function useTheme() {
     localStorage.setItem("text-size", textSize)
   }, [textSize])
 
-  const toggleMode = () => setMode((prev) => (prev === "light" ? "dark" : "light"))
+  const toggleMode = () =>
+    setMode(prev => (prev === "light" ? "dark" : prev === "dark" ? "system" : "light"))
 
   // Backward-compat alias used by old ThemeToggle
   const theme = mode
@@ -121,6 +167,7 @@ export function useTheme() {
   return {
     theme, setTheme, toggleTheme,
     mode, setMode, toggleMode,
+    resolvedMode,
     colorTheme, setColorTheme,
     appFont, setAppFont,
     appZoom, setAppZoom,

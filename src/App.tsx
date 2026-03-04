@@ -13,7 +13,7 @@ const Rooster = lazy(() => import("@/components/Rooster").then(m => ({ default: 
 import { EditModeProvider } from "@/contexts/EditModeContext"
 import { DeviceProvider } from "@/contexts/DeviceContext"
 import { Toaster } from "sonner"
-import { Home, Package, Settings2, Calendar as CalendarIcon, Images, ChevronDown, Truck, Pin, LayoutList, List, Layers, MapPin, ClipboardList, Users, CheckCircle2, ArrowRightLeft, Ban } from "lucide-react"
+import { Home, Package, Settings2, Calendar as CalendarIcon, Images, ChevronDown, Truck, Pin, LayoutList, List, Layers, MapPin, ClipboardList, Users } from "lucide-react"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -105,13 +105,6 @@ function HomePage({ onNavigate }: { onNavigate: (page: string) => void }) {
   const [tableExpanded, setTableExpanded] = useState(false)
   const [legendOpen, setLegendOpen] = useState(false)
   const todayIndex = (new Date().getDay() + 6) % 7
-
-  const now = new Date()
-  const dateStr = now.toLocaleDateString("en-MY", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
-
-  const todayStockIn   = STOCK_IN_COLORS[todayIndex]
-  const todayMoveFront = MOVE_FRONT_COLORS[todayIndex]
-  const todayExpired   = EXPIRED_COLORS[todayIndex]
 
   const [pinnedRoutes, setPinnedRoutes] = useState<Array<{ id: string; name: string; code: string; shift: string }>>(() => {
     try { return JSON.parse(localStorage.getItem("fcalendar_pinned_routes") || "[]") } catch { return [] }

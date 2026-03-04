@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import QrScanner from "qr-scanner"
-import { Plus, Trash2, QrCode, ExternalLink, Pencil, Link2, ImageUp, X, ScanLine, CheckCircle2, Loader2, AlertCircle, Check, Camera } from "lucide-react"
+import { Plus, Trash2, QrCode, ExternalLink, Pencil, Link2, ImageUp, X, CheckCircle2, Loader2, AlertCircle, Check, Camera } from "lucide-react"
 import { toast } from "sonner"
 import "lightgallery/css/lightgallery.css"
 import "lightgallery/css/lg-zoom.css"
@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input"
 interface DeliveryPoint {
   code: string
   name: string
-  delivery: "Daily" | "Weekday" | "Alt 1" | "Alt 2"
+  delivery: string
   latitude: number
   longitude: number
   descriptions: { key: string; value: string }[]
@@ -54,8 +54,8 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
   const [qrTab, setQrTab] = useState<"url" | "media">("url")
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // PrimeReact Toast refs
   const [pendingUrl, setPendingUrl] = useState<string | null>(null)
+  const [pendingUrlLabel, setPendingUrlLabel] = useState<string>("")
 
   // Avatar image state
   const [avatarImageUrl, setAvatarImageUrl] = useState("") // selected display image
@@ -136,8 +136,7 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
     return data.data.url as string
   }
 
-  const [scannedUrl, setScannedUrl] = useState<string | null>(null)
-  const [isScanning, setIsScanning] = useState(false)
+  const [isUploadingQR, setIsUploadingQR] = useState(false)
   const [qrDecodeStatus, setQrDecodeStatus] = useState<"idle" | "decoding" | "decoded" | "failed">("idle")
 
   // Decode QR code from a data URL or Blob using qr-scanner
@@ -150,32 +149,27 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
     }
   }
 
-  // Scan QR image in view mode: fetch via proxy if remote URL, then decode
-  const handleScanQr = async () => {
-    if (!qrCodeImageUrl) return
-    setIsScanning(true)
-    // Minimum animation duration
-    await new Promise(resolve => setTimeout(resolve, 800))
+  // Upload QR image file → ImgBB (no base64 bloat in DB)
+  const handleQrFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setIsUploadingQR(true)
+    setQrDecodeStatus("decoding")
     try {
-      let source: string | Blob = qrCodeImageUrl
-      if (qrCodeImageUrl.startsWith("http")) {
-        const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(qrCodeImageUrl)}`
-        const response = await fetch(proxyUrl)
-        if (response.ok) {
-          source = await response.blob()
-        }
-      }
-      const decoded = await decodeQrFromSource(source)
-      setIsScanning(false)
+      const url = await uploadToImgBB(file)
+      setQrCodeImageUrl(url)
+      const decoded = await decodeQrFromSource(file)
       if (decoded) {
-        setScannedUrl(decoded)
+        setQrDecodeStatus("decoded")
+        setQrCodeDestinationUrl(decoded)
       } else {
-        // fallback to stored destination URL
-        setScannedUrl(qrCodeDestinationUrl ?? "")
+        setQrDecodeStatus("failed")
       }
     } catch {
-      setIsScanning(false)
-      setScannedUrl(qrCodeDestinationUrl ?? "")
+      setQrDecodeStatus("failed")
+    } finally {
+      setIsUploadingQR(false)
+      if (fileInputRef.current) fileInputRef.current.value = ""
     }
   }
 
@@ -213,11 +207,12 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
   const wazeUrl = `https://waze.com/ul?ll=${point.latitude},${point.longitude}&navigate=yes`
   const familyMartUrl = `https://fmvending.web.app/refill-service/M${String(point.code).padStart(4, "0")}`
 
-  const openUrl = (url: string) => setPendingUrl(url)
+  const openUrl = (url: string, label = "") => { setPendingUrl(url); setPendingUrlLabel(label) }
   const confirmOpen = () => {
     if (pendingUrl) {
       window.open(pendingUrl, "_blank")
       setPendingUrl(null)
+      setPendingUrlLabel("")
     }
   }
 
@@ -368,7 +363,7 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
                 {hasCoords && (
                   <>
                     <button
-                      onClick={() => openUrl(gmapsUrl)}
+                      onClick={() => openUrl(gmapsUrl, "Google Maps")}
                       title="Google Maps"
                       className="flex flex-col items-center gap-1.5 group flex-1 min-w-[60px]"
                     >
@@ -378,7 +373,7 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
                       <span className="text-[10px] text-muted-foreground font-medium">Maps</span>
                     </button>
                     <button
-                      onClick={() => openUrl(wazeUrl)}
+                      onClick={() => openUrl(wazeUrl, "Waze")}
                       title="Waze"
                       className="flex flex-col items-center gap-1.5 group flex-1 min-w-[60px]"
                     >
@@ -390,7 +385,7 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
                   </>
                 )}
                 <button
-                  onClick={() => openUrl(familyMartUrl)}
+                  onClick={() => openUrl(familyMartUrl, "FamilyMart")}
                   title="FamilyMart"
                   className="flex flex-col items-center gap-1.5 group flex-1 min-w-[60px]"
                 >
@@ -404,23 +399,15 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
                 {(qrCodeImageUrl || isEditMode) && (
                   <button
                     onClick={() => {
-                      if (isEditMode) {
-                        setShowQRDialog(true)
-                      } else {
-                        handleScanQr()
-                      }
+                      setQrDecodeStatus("idle")
+                      setShowQRDialog(true)
                     }}
-                    disabled={isScanning}
-                    title={isEditMode ? (qrCodeImageUrl ? "Edit QR Code" : "Add QR Code") : "Scan QR Code"}
-                    className="flex flex-col items-center gap-1.5 group flex-1 min-w-[60px] disabled:opacity-70 disabled:cursor-not-allowed"
+                    title={isEditMode ? (qrCodeImageUrl ? "Edit QR Code" : "Add QR Code") : "View / Scan QR Code"}
+                    className="flex flex-col items-center gap-1.5 group flex-1 min-w-[60px]"
                   >
                     <div className="relative w-11 h-11 rounded-2xl bg-orange-500 hover:bg-orange-600 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all group-hover:scale-105">
-                      {isScanning ? (
-                        <Loader2 className="w-5 h-5 text-white animate-spin" />
-                      ) : (
-                        <QrCode className="w-5 h-5 text-white" />
-                      )}
-                      {isEditMode && !isScanning && (
+                      <QrCode className="w-5 h-5 text-white" />
+                      {isEditMode && (
                         <span className="absolute -top-1 -right-1 bg-background rounded-full p-0.5">
                           {qrCodeImageUrl
                             ? <Pencil className="w-2.5 h-2.5" />
@@ -428,9 +415,7 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
                         </span>
                       )}
                     </div>
-                    <span className="text-[10px] text-muted-foreground font-medium">
-                      {isScanning ? "Scanning…" : "QR"}
-                    </span>
+                    <span className="text-[10px] text-muted-foreground font-medium">QR</span>
                   </button>
                 )}
               </div>
@@ -625,161 +610,162 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
             </DialogContent>
           </Dialog>
 
-          {/* QR Code dialog */}
-          <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
-            <DialogContent className="max-w-xs rounded-2xl">
-              <DialogHeader>
-                <DialogTitle className="text-base">
-                  {isEditMode ? "QR Code Settings" : "QR Code"}
-                </DialogTitle>
-                {!isEditMode && (
-                  <DialogDescription>
-                    Scan the QR code or open the destination link.
-                  </DialogDescription>
-                )}
+          {/* QR Code dialog — unified for view + edit mode */}
+          <Dialog open={showQRDialog} onOpenChange={(o) => { if (!o) { setQrTab("url"); setQrDecodeStatus("idle") } setShowQRDialog(o) }}>
+            <DialogContent className="max-w-sm rounded-2xl p-0 overflow-hidden gap-0">
+
+              {/* Header */}
+              <DialogHeader className="px-5 pt-5 pb-4 border-b border-border">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
+                    <QrCode className="w-5 h-5 text-orange-500" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-base font-bold leading-tight">
+                      {isEditMode ? "QR Code Settings" : "QR Code"}
+                    </DialogTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {isEditMode ? "Manage the QR code for this location." : "View or open the QR code destination."}
+                    </p>
+                  </div>
+                </div>
               </DialogHeader>
 
-              <div className="space-y-3">
-                {/* QR Image preview */}
-                {qrCodeImageUrl && (
-                  <div className="relative flex justify-center">
-                    <img
-                      src={qrCodeImageUrl}
-                      alt="QR Code"
-                      className="w-40 h-40 object-contain border rounded-xl"
-                    />
-                    {isEditMode && (
-                      <button
-                        onClick={() => { setQrCodeImageUrl(""); if (fileInputRef.current) fileInputRef.current.value = "" }}
-                        className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-0.5 hover:bg-destructive/80 transition-colors"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
-                )}
+              {/* Body */}
+              <div className="px-5 py-4 space-y-4">
 
+                {/* ── EDIT MODE ── */}
                 {isEditMode && (
                   <>
+                    {/* Preview */}
+                    {qrCodeImageUrl && (
+                      <div className="relative flex justify-center p-3 bg-muted/40 rounded-2xl border border-border">
+                        <img src={qrCodeImageUrl} alt="QR Code"
+                          className="w-40 h-40 object-contain rounded-lg bg-white shadow-sm"
+                        />
+                        <button
+                          onClick={() => { setQrCodeImageUrl(""); setQrDecodeStatus("idle"); if (fileInputRef.current) fileInputRef.current.value = "" }}
+                          className="absolute top-2 right-2 bg-destructive text-white rounded-full p-1 hover:bg-destructive/80 transition-colors shadow"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+
                     {/* Tabs */}
-                    <div className="flex rounded-lg border overflow-hidden">
-                      <button
-                        onClick={() => setQrTab("url")}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold transition-colors ${
-                          qrTab === "url"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-muted-foreground hover:bg-muted/70"
-                        }`}
-                      >
-                        <Link2 className="w-3.5 h-3.5" />
-                        URL
-                      </button>
-                      <button
-                        onClick={() => setQrTab("media")}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold transition-colors ${
-                          qrTab === "media"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-muted-foreground hover:bg-muted/70"
-                        }`}
-                      >
-                        <ImageUp className="w-3.5 h-3.5" />
-                        Media
-                      </button>
+                    <div className="flex rounded-xl border border-border overflow-hidden bg-muted/40 p-0.5 gap-0.5">
+                      {(["url", "media"] as const).map(tab => (
+                        <button key={tab}
+                          onClick={() => { setQrTab(tab); setQrDecodeStatus("idle") }}
+                          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                            qrTab === tab
+                              ? "bg-background text-foreground shadow-sm"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {tab === "url" ? <><Link2 className="w-3 h-3" />URL</> : <><ImageUp className="w-3 h-3" />Upload</>}
+                        </button>
+                      ))}
                     </div>
 
                     {/* Tab: URL */}
                     {qrTab === "url" && (
-                      <div className="space-y-1">
-                        <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">QR Image URL</label>
-                        <Input
-                          value={qrCodeImageUrl}
-                          onChange={e => setQrCodeImageUrl(e.target.value)}
-                          placeholder="https://example.com/qr.png"
-                          className="h-8 text-sm"
-                        />
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">QR Image URL</label>
+                        <Input value={qrCodeImageUrl} onChange={e => setQrCodeImageUrl(e.target.value)}
+                          placeholder="https://example.com/qr.png" className="h-9 text-sm" />
                       </div>
                     )}
 
-                    {/* Tab: Media */}
+                    {/* Tab: Upload → ImgBB */}
                     {qrTab === "media" && (
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Upload Image</label>
+                      <div className="space-y-2.5">
                         <div
-                          onClick={() => { fileInputRef.current?.click(); setQrDecodeStatus("idle") }}
-                          className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl py-5 cursor-pointer hover:bg-muted/40 transition-colors"
+                          onClick={() => !isUploadingQR && fileInputRef.current?.click()}
+                          className={`flex flex-col items-center justify-center gap-2.5 border-2 border-dashed rounded-2xl py-6 cursor-pointer transition-colors ${
+                            isUploadingQR ? "border-primary/40 bg-primary/5" : "border-border hover:border-primary/50 hover:bg-muted/40"
+                          }`}
                         >
-                          <ImageUp className="w-7 h-7 text-muted-foreground" />
-                          <p className="text-xs text-muted-foreground">Click to choose image</p>
+                          {isUploadingQR ? (
+                            <>
+                              <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                              <p className="text-xs font-medium text-primary">Uploading to cloud…</p>
+                            </>
+                          ) : (
+                            <>
+                              <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
+                                <ImageUp className="w-5 h-5 text-muted-foreground" />
+                              </div>
+                              <div className="text-center">
+                                <p className="text-xs font-semibold text-foreground">Click to upload</p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5">Auto-scan included · PNG, JPG, etc.</p>
+                              </div>
+                            </>
+                          )}
                         </div>
-
-                        {/* Decode status feedback */}
                         {qrDecodeStatus === "decoding" && (
-                          <div className="flex items-center gap-2 text-xs text-blue-500">
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            <span>Sedang scan QR code...</span>
+                          <div className="flex items-center gap-2 text-xs text-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-lg px-3 py-2">
+                            <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />Scanning QR code…
                           </div>
                         )}
                         {qrDecodeStatus === "decoded" && (
-                          <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span>QR berjaya dibaca — URL diisi automatik.</span>
+                          <div className="flex items-center gap-2 text-xs text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded-lg px-3 py-2">
+                            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />QR decoded — destination URL auto-filled.
                           </div>
                         )}
                         {qrDecodeStatus === "failed" && (
-                          <div className="flex items-center gap-2 text-xs text-red-500">
-                            <AlertCircle className="w-3.5 h-3.5" />
-                            <span>QR could not be read. Please enter the Destination URL manually.</span>
+                          <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-2">
+                            <AlertCircle className="w-3.5 h-3.5 shrink-0" />QR code could not be read. Please enter the destination URL manually.
                           </div>
                         )}
-
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={e => {
-                            const file = e.target.files?.[0]
-                            if (!file) return
-                            setQrDecodeStatus("decoding")
-                            const reader = new FileReader()
-                            reader.onloadend = async () => {
-                              const dataUrl = reader.result as string
-                              setQrCodeImageUrl(dataUrl)
-                              // Auto-decode using qr-scanner
-                              const decoded = await decodeQrFromSource(file)
-                              if (decoded) {
-                                setQrDecodeStatus("decoded")
-                                setQrCodeDestinationUrl(decoded)
-                              } else {
-                                setQrDecodeStatus("failed")
-                              }
-                            }
-                            reader.readAsDataURL(file)
-                          }}
-                        />
+                        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleQrFileUpload} />
                       </div>
                     )}
 
-                    {/* Destination URL — shown always; label hints auto-fill */}
-                    <div className="space-y-1">
+                    {/* Destination URL */}
+                    <div className="pt-1 border-t border-border space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Destination URL</label>
+                        <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Destination URL</label>
                         {qrDecodeStatus === "decoded" && (
-                          <span className="text-[10px] text-green-600 dark:text-green-400 font-medium">Auto-filled ✓</span>
+                          <span className="text-[10px] text-green-600 dark:text-green-400 font-semibold bg-green-50 dark:bg-green-900/30 px-1.5 py-0.5 rounded-md">Auto-filled ✓</span>
                         )}
                       </div>
-                      <Input
-                        value={qrCodeDestinationUrl}
-                        onChange={e => setQrCodeDestinationUrl(e.target.value)}
-                        placeholder="https://example.com/destination"
-                        className="h-8 text-sm"
-                      />
+                      <Input value={qrCodeDestinationUrl} onChange={e => setQrCodeDestinationUrl(e.target.value)}
+                        placeholder="https://example.com/destination" className="h-9 text-sm" />
                     </div>
                   </>
                 )}
+
+                {/* ── VIEW MODE ── */}
+                {!isEditMode && (
+                  <div className="space-y-3">
+                    {qrCodeImageUrl && (
+                      <div className="flex justify-center p-3 bg-muted/40 rounded-2xl border border-border">
+                        <img src={qrCodeImageUrl} alt="QR Code"
+                          className="w-44 h-44 object-contain rounded-lg bg-white shadow-sm"
+                        />
+                      </div>
+                    )}
+                    {qrCodeDestinationUrl ? (
+                      <div className="bg-muted/50 rounded-xl border border-border px-4 py-3 space-y-1">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Destination URL</p>
+                        <p className="text-xs font-mono break-all text-foreground leading-relaxed">{qrCodeDestinationUrl}</p>
+                      </div>
+                    ) : !qrCodeImageUrl && (
+                      <div className="flex flex-col items-center gap-2 py-6 text-center">
+                        <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center">
+                          <QrCode className="w-6 h-6 text-muted-foreground/50" />
+                        </div>
+                        <p className="text-sm font-medium text-muted-foreground">No QR code configured</p>
+                        <p className="text-xs text-muted-foreground/60">Enable edit mode to add one.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              <DialogFooter className="flex gap-2 justify-end">
+              {/* Footer */}
+              <div className="px-5 py-4 border-t border-border flex gap-2 justify-end bg-muted/20">
                 {isEditMode ? (
                   <>
                     <Button variant="outline" size="sm" onClick={() => setShowQRDialog(false)}>Cancel</Button>
@@ -789,88 +775,60 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
                   <>
                     <Button variant="outline" size="sm" onClick={() => setShowQRDialog(false)}>Close</Button>
                     {qrCodeDestinationUrl && (
-                      <Button size="sm" onClick={() => { openUrl(qrCodeDestinationUrl); setShowQRDialog(false) }}>
-                        <ExternalLink className="w-3.5 h-3.5 mr-1" />
-                        Open Link
+                      <Button size="sm" onClick={() => { window.open(qrCodeDestinationUrl, "_blank"); setShowQRDialog(false) }}>
+                        <ExternalLink className="w-3.5 h-3.5 mr-1.5" />Open Link
                       </Button>
                     )}
                   </>
                 )}
-              </DialogFooter>
+              </div>
+
             </DialogContent>
           </Dialog>
 
           {/* Confirmation dialog (open external link) */}
-          <Dialog open={!!pendingUrl} onOpenChange={(o) => { if (!o) setPendingUrl(null) }}>
-            <DialogContent className="max-w-sm rounded-2xl">
-              <DialogHeader>
-                <DialogTitle className="text-base">Open Link?</DialogTitle>
-                <DialogDescription asChild>
-                  <div className="space-y-2 mt-1">
-                    <p className="text-sm text-muted-foreground">You will be taken to an external app or website.</p>
-                    <p className="text-xs font-mono break-all bg-muted text-muted-foreground rounded-xl px-3 py-2">
-                      {pendingUrl}
-                    </p>
+          <Dialog open={!!pendingUrl} onOpenChange={(o) => { if (!o) { setPendingUrl(null); setPendingUrlLabel("") } }}>
+            <DialogContent className="max-w-sm rounded-2xl p-0 overflow-hidden gap-0">
+
+              {/* Header */}
+              <DialogHeader className="px-5 pt-5 pb-4 border-b border-border">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl overflow-hidden border border-border/40 shrink-0">
+                    <img
+                      src={pendingUrlLabel === "Google Maps" ? "/Gmaps.png" : pendingUrlLabel === "Waze" ? "/waze.png" : "/FamilyMart.png"}
+                      alt={pendingUrlLabel}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                </DialogDescription>
+                  <div>
+                    <DialogTitle className="text-base font-bold leading-tight">Open {pendingUrlLabel || "Link"}?</DialogTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">You will be redirected to an external app or website.</p>
+                  </div>
+                </div>
               </DialogHeader>
-              <DialogFooter className="flex gap-2 justify-end mt-2">
-                <Button variant="outline" onClick={() => setPendingUrl(null)}>Cancel</Button>
-                <Button onClick={confirmOpen}>
-                  <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
-                  Open
+
+              {/* Body */}
+              <DialogDescription asChild>
+                <div className="px-5 py-4">
+                  <div className="bg-muted/50 rounded-xl border border-border px-4 py-3 space-y-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Destination</p>
+                    <p className="text-xs font-mono break-all text-foreground leading-relaxed">{pendingUrl}</p>
+                  </div>
+                </div>
+              </DialogDescription>
+
+              {/* Footer */}
+              <div className="px-5 py-4 border-t border-border flex gap-2 justify-end bg-muted/20">
+                <Button variant="outline" size="sm" onClick={() => { setPendingUrl(null); setPendingUrlLabel("") }}>Cancel</Button>
+                <Button size="sm" onClick={confirmOpen}>
+                  <ExternalLink className="w-3.5 h-3.5 mr-1.5" />Open
                 </Button>
-              </DialogFooter>
+              </div>
+
             </DialogContent>
           </Dialog>
 
-          {/* QR Scan result modal */}
-          <Dialog open={!!scannedUrl || scannedUrl === ""} onOpenChange={(o) => { if (!o) setScannedUrl(null) }}>
-            <DialogContent className="max-w-xs rounded-2xl">
-              <DialogHeader>
-                <DialogTitle asChild>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
-                      <ScanLine className="w-4 h-4 text-green-600 dark:text-green-400" />
-                    </div>
-                    <span className="text-base font-semibold">QR Scanned</span>
-                  </div>
-                </DialogTitle>
-                <DialogDescription asChild>
-                  <div className="space-y-3 pt-1">
-                    {scannedUrl ? (
-                      <>
-                        <div className="flex items-start gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Link detected. Press <span className="font-semibold text-gray-700 dark:text-gray-200">Open</span> to continue.</p>
-                        </div>
-                        <div className="bg-gray-100 dark:bg-neutral-800 rounded-xl px-3 py-2.5">
-                          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-1">Destination</p>
-                          <p className="text-xs font-mono break-all text-gray-700 dark:text-gray-200 leading-relaxed">
-                            {scannedUrl}
-                          </p>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="flex items-start gap-2 py-1">
-                        <X className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
-                        <p className="text-sm text-gray-500 dark:text-gray-400">No destination URL set for this QR code.</p>
-                      </div>
-                    )}
-                  </div>
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter className="flex gap-2 justify-end">
-                <Button variant="outline" size="sm" onClick={() => setScannedUrl(null)}>Close</Button>
-                {scannedUrl && (
-                  <Button size="sm" onClick={() => { window.open(scannedUrl, "_blank"); setScannedUrl(null) }}>
-                    <ExternalLink className="w-3.5 h-3.5 mr-1" />
-                    Open
-                  </Button>
-                )}
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          {/* QR Scan result modal removed — integrated into main QR dialog */}
         </div>
 
         {/* Footer — only in edit mode */}
