@@ -105,6 +105,7 @@ const data = {
     { title: "Appearance",  page: "settings-appearance" },
     { title: "Font",        page: "settings-appearance-font" },
     { title: "Display",     page: "settings-appearance-display" },
+    { title: "Route Colours", page: "settings-route-colors" },
     { title: "Map Settings",page: "settings-map" },
     { title: "Security",    page: "settings-security" },
   ],
@@ -112,7 +113,7 @@ const data = {
 
 const SETTINGS_PAGES = new Set([
   "settings-profile","settings-notifications","settings-appearance",
-  "settings-appearance-font","settings-appearance-display","settings-map","settings-security",
+  "settings-appearance-font","settings-appearance-display","settings-route-colors","settings-map","settings-security",
 ])
 
 

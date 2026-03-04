@@ -1,25 +1,18 @@
-import { useState } from "react"
+import { useState, useRef } from "react"
 import type { ReactNode } from "react"
 import {
   User, Bell, Lock, Globe, Mail, Phone, Save, Shield,
   Eye, EyeOff, Moon, Sun, Check, Type, ZoomIn,
-  Brush, AlertTriangle, Languages, Navigation,
+  Brush, AlertTriangle, Languages, Navigation, Palette, Plus, Trash2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { useTheme, FONT_OPTIONS, type ColorTheme, type AppFont, type AppZoom, type TextSize } from "@/hooks/use-theme"
+import { useTheme, FONT_OPTIONS, type AppFont, type AppZoom, type TextSize } from "@/hooks/use-theme"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type ThemeOption = {
-  id: ColorTheme
-  label: string
-  // swatches shown in the card (bg, primary, secondary, accent)
-  swatches: { light: [string, string, string, string]; dark: [string, string, string, string] }
-}
-
 type SectionId =
   | "profile"
   | "notifications"
@@ -28,21 +21,11 @@ type SectionId =
   | "appearance-display"
   | "appearance-language"
   | "map-defaultview"
+  | "route-colors"
   | "security"
   | "danger"
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-// swatches: [background, primary, secondary/muted, accent]
-const THEME_OPTIONS: ThemeOption[] = [
-  { id: "default",         label: "Default",         swatches: { light: ["#dce8f3", "#1a7fbf", "#b8d0e8", "#b8d0e8"], dark:  ["#0e1117", "#3ba9e0", "#1a2030", "#1a2030"] } },
-  { id: "bubblegum",       label: "Bubble Gum",      swatches: { light: ["#f0d8e5", "#d4487a", "#c8e0e8", "#f5e4a0"], dark:  ["#1a2030", "#f5d87c", "#b87890", "#9870a8"] } },
-  { id: "candyland",       label: "Candy Land",      swatches: { light: ["#fde8ef", "#e03050", "#70d890", "#f8d060"], dark:  ["#1a1428", "#f8e088", "#60c880", "#e06878"] } },
-  { id: "claude",          label: "Claude",          swatches: { light: ["#faf6ef", "#d46b32", "#e8d8b8", "#d8c890"], dark:  ["#1a1510", "#e07840", "#382818", "#483820"] } },
-  { id: "cyberpunk",       label: "Cyberpunk",       swatches: { light: ["#f0f4fa", "#00c8e0", "#d8e0f0", "#e8e030"], dark:  ["#0c0e1c", "#e8e030", "#101828", "#00b8d0"] } },
-  { id: "northern-lights", label: "Northern Lights", swatches: { light: ["#eff7f5", "#2a9d7f", "#c0d8e8", "#c0a8e0"], dark:  ["#111828", "#40d8a8", "#182030", "#6060c8"] } },
-  { id: "ocean-breeze",    label: "Ocean Breeze",    swatches: { light: ["#f0f6f8", "#1a6ea0", "#80d0e8", "#60b8c8"], dark:  ["#131e2a", "#30b8d8", "#182030", "#508098"] } },
-]
-
 const MODE_OPTIONS = [
   { id: "light" as const, label: "Light", icon: Sun },
   { id: "dark" as const,  label: "Dark",  icon: Moon },
@@ -51,16 +34,23 @@ const MODE_OPTIONS = [
 const LS_DEFAULT_VIEW = "mapMarkerDefaultView"
 const MAP_FALLBACK = { lat: "3.0695500", lng: "101.5469179", zoom: "12" }
 
+const LS_ROUTE_COLORS = "fcalendar_route_colors"
+const DEFAULT_ROUTE_COLORS = ["#374151", "#7c3aed", "#0891b2", "#16a34a", "#dc2626", "#d97706"]
+
 // ─── Sidebar nav ──────────────────────────────────────────────────────────────
 // ─── Section panels ───────────────────────────────────────────────────────────
 function SectionHeader({ icon, title, description }: { icon: ReactNode; title: string; description?: string }) {
   return (
-    <div className="mb-6">
-      <div className="flex items-center gap-2 mb-1">
-        {icon}
-        <h2 className="text-xl font-semibold">{title}</h2>
+    <div className="mb-7">
+      <div className="flex items-center gap-3 mb-1">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          {icon}
+        </div>
+        <h2 className="text-base font-semibold tracking-tight text-foreground">{title}</h2>
       </div>
-      {description && <p className="text-sm text-muted-foreground">{description}</p>}
+      {description && (
+        <p className="ml-11 text-sm text-muted-foreground leading-relaxed">{description}</p>
+      )}
       <Separator className="mt-4" />
     </div>
   )
@@ -68,7 +58,7 @@ function SectionHeader({ icon, title, description }: { icon: ReactNode; title: s
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 export function Settings({ section = "profile" }: { section?: SectionId }) {
-  const { mode, setMode, colorTheme, setColorTheme, appFont, setAppFont, appZoom, setAppZoom, textSize, setTextSize } = useTheme()
+  const { mode, setMode, appFont, setAppFont, appZoom, setAppZoom, textSize, setTextSize } = useTheme()
   const active = section
 
   // Profile state
@@ -90,6 +80,22 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
   const [mapLng,  setMapLng]  = useState(() => { try { const v = localStorage.getItem(LS_DEFAULT_VIEW); if (v) return String(JSON.parse(v).center[1]) } catch { /**/ } return MAP_FALLBACK.lng })
   const [mapZoom, setMapZoom] = useState(() => { try { const v = localStorage.getItem(LS_DEFAULT_VIEW); if (v) return String(JSON.parse(v).zoom)     } catch { /**/ } return MAP_FALLBACK.zoom })
   const [mapSaved, setMapSaved] = useState(false)
+
+  // Route colors
+  const [routeColors, setRouteColors] = useState<string[]>(() => {
+    try { const v = localStorage.getItem(LS_ROUTE_COLORS); if (v) return JSON.parse(v) } catch { /**/ }
+    return DEFAULT_ROUTE_COLORS
+  })
+  const savedRouteColorsRef = useRef<string[]>(routeColors)
+  const routeColorsDirty = JSON.stringify(routeColors) !== JSON.stringify(savedRouteColorsRef.current)
+
+  const handleSaveRouteColors = () => {
+    localStorage.setItem(LS_ROUTE_COLORS, JSON.stringify(routeColors))
+    savedRouteColorsRef.current = [...routeColors]
+    window.dispatchEvent(new Event('fcalendar_route_colors_changed'))
+    // force re-render to update dirty flag
+    setRouteColors(c => [...c])
+  }
 
   // Card columns
   const [cardCols, setCardCols] = useState(() => localStorage.getItem('fcalendar_card_cols') || '2')
@@ -121,7 +127,7 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
       case "profile":
         return (
           <div>
-            <SectionHeader icon={<User className="size-5" />} title="Profile" description="Maklumat akaun anda." />
+            <SectionHeader icon={<User className="size-4" />} title="Profile" description="Maklumat akaun anda." />
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -158,7 +164,7 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
         ]
         return (
           <div>
-            <SectionHeader icon={<Bell className="size-5" />} title="Notifications" description="Manage the notifications you receive." />
+            <SectionHeader icon={<Bell className="size-4" />} title="Notifications" description="Manage the notifications you receive." />
 
             <FieldGroup className="w-full">
               {NOTIF_ITEMS.map(({ key, label, desc, icon }) => (
@@ -200,86 +206,44 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
       case "appearance-theme":
         return (
           <div>
-            <SectionHeader icon={<Brush className="size-5" />} title="Theme & Colour" description="Choose display mode and app colour theme." />
-            <div className="space-y-8">
-
-              {/* ─ Display Mode ─ */}
-              <div className="space-y-3">
-                <label className="text-sm font-semibold">Display Mode</label>
-                <div className="flex items-center rounded-xl border border-border bg-muted/40 p-1 gap-1">
-                  {MODE_OPTIONS.map(({ id, label, icon: Icon }) => {
-                    const isActive = mode === id
-                    return (
-                      <button
-                        key={id}
-                        onClick={() => setMode(id)}
-                        className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 px-3 text-sm font-semibold transition-all duration-200 ${
-                          isActive
-                            ? "bg-background text-foreground shadow-sm ring-1 ring-border"
-                            : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                        }`}
-                      >
-                        <Icon className="size-4 shrink-0" />
-                        <span>{label}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-
+            <SectionHeader icon={<Brush className="size-4" />} title="Display Mode" description="Switch between light and dark appearance." />
+            <div className="space-y-4">
+              <div className="flex items-center rounded-xl border border-border bg-muted/40 p-1 gap-1">
+                {MODE_OPTIONS.map(({ id, label, icon: Icon }) => {
+                  const isActive = mode === id
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => setMode(id)}
+                      className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-3 px-3 text-sm font-semibold transition-all duration-200 ${
+                        isActive
+                          ? "bg-background text-foreground shadow-sm ring-1 ring-border"
+                          : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                      }`}
+                    >
+                      <Icon className="size-4 shrink-0" />
+                      <span>{label}</span>
+                    </button>
+                  )
+                })}
               </div>
 
-              <Separator />
-
-              {/* ─ Color Theme ─ */}
-              <div className="space-y-3">
-                <label className="text-sm font-semibold">Colour Theme</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {THEME_OPTIONS.map(opt => {
-                    const sw = mode === "dark" ? opt.swatches.dark : opt.swatches.light
-                    const [bg, primary, secondary, accent] = sw
-                    const isActive = colorTheme === opt.id
-                    return (
-                      <button
-                        key={opt.id}
-                        onClick={() => setColorTheme(opt.id)}
-                        className={`relative flex flex-col overflow-hidden rounded-xl border-2 text-left transition-all duration-200 hover:scale-[1.03] hover:shadow-md ${
-                          isActive
-                            ? "border-primary shadow-md ring-2 ring-primary/30"
-                            : "border-border hover:border-primary/50"
-                        }`}
-                        style={{ backgroundColor: bg }}
-                      >
-                        {/* Gradient banner */}
-                        <div
-                          className="h-10 w-full shrink-0"
-                          style={{ background: `linear-gradient(135deg, ${primary} 0%, ${accent} 50%, ${secondary} 100%)` }}
-                        />
-                        {/* Info row */}
-                        <div className="flex items-center gap-2 px-2.5 py-2">
-                          <div className="flex gap-1 shrink-0">
-                            {[primary, secondary, accent].map((c, i) => (
-                              <span
-                                key={i}
-                                className="inline-block w-3 h-3 rounded-full ring-1 ring-black/10"
-                                style={{ backgroundColor: c }}
-                              />
-                            ))}
-                          </div>
-                          <span
-                            className="flex-1 text-[10px] font-bold truncate leading-none"
-                            style={{ color: mode === "dark" ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.7)" }}
-                          >
-                            {opt.label}
-                          </span>
-                        </div>
-                        {isActive && (
-                          <span className="absolute top-1.5 right-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
-                            <Check className="size-3" />
-                          </span>
-                        )}
-                      </button>
-                    )
-                  })}
+              {/* Preview strip */}
+              <div className="rounded-xl border border-border overflow-hidden">
+                <div className="h-20 bg-background flex items-center justify-center gap-3 px-4">
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-2.5 w-3/4 rounded-full bg-foreground/15" />
+                    <div className="h-2 w-1/2 rounded-full bg-foreground/10" />
+                  </div>
+                  <div className="h-8 w-16 rounded-lg bg-primary/90 flex items-center justify-center">
+                    <div className="h-1.5 w-8 rounded-full bg-primary-foreground/70" />
+                  </div>
+                </div>
+                <div className="px-3 py-2 bg-muted/60 flex items-center gap-2">
+                  {MODE_OPTIONS.find(m => m.id === mode) && (() => {
+                    const { icon: Icon, label } = MODE_OPTIONS.find(m => m.id === mode)!
+                    return (<><Icon className="size-3 text-muted-foreground" /><span className="text-xs text-muted-foreground">{label} mode active</span></>)
+                  })()}
                 </div>
               </div>
             </div>
@@ -290,7 +254,7 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
       case "appearance-font":
         return (
           <div>
-            <SectionHeader icon={<Type className="size-5" />} title="Font Style" description="Choose a font for the entire app." />
+            <SectionHeader icon={<Type className="size-4" />} title="Font Style" description="Choose a font for the entire app." />
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {FONT_OPTIONS.map(opt => {
@@ -320,7 +284,7 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
       case "appearance-display":
         return (
           <div>
-            <SectionHeader icon={<ZoomIn className="size-5" />} title="Display" description="UI scale, text size and card layout." />
+            <SectionHeader icon={<ZoomIn className="size-4" />} title="Display" description="UI scale, text size and card layout." />
             <div className="space-y-8">
 
               {/* App Zoom */}
@@ -441,7 +405,7 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
       case "appearance-language":
         return (
           <div>
-            <SectionHeader icon={<Languages className="size-5" />} title="Language & Timezone" description="Display language and timezone settings." />
+            <SectionHeader icon={<Languages className="size-4" />} title="Language & Timezone" description="Display language and timezone settings." />
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -477,7 +441,7 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
       case "map-defaultview":
         return (
           <div>
-            <SectionHeader icon={<Navigation className="size-5" />} title="Default Map View" description="Coordinates and zoom shown by default in Map Marker." />
+            <SectionHeader icon={<Navigation className="size-4" />} title="Default Map View" description="Coordinates and zoom shown by default in Map Marker." />
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
@@ -506,11 +470,138 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
           </div>
         )
 
+      // ── Route Colors ──────────────────────────────────────────────────────
+      case "route-colors": {
+        // helper: pick white or black text based on bg brightness
+        const fgFor = (hex: string) => {
+          const r = parseInt(hex.slice(1, 3), 16)
+          const g = parseInt(hex.slice(3, 5), 16)
+          const b = parseInt(hex.slice(5, 7), 16)
+          return (r * 299 + g * 587 + b * 114) / 1000 > 128 ? '#111827' : '#ffffff'
+        }
+
+        return (
+          <div>
+            {/* ── Section header ── */}
+            <div className="mb-6">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                  <Palette className="size-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold leading-tight">Route Card Colours</h2>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Warna dikitar secara berurutan pada setiap kad route yang tiada warna khas.
+                  </p>
+                </div>
+              </div>
+
+              {/* Palette preview strip */}
+              <div className="flex h-8 rounded-lg overflow-hidden border border-border shadow-sm">
+                {routeColors.map((c, i) => (
+                  <div key={i} className="flex-1" style={{ background: c }} title={`Route ${i + 1}: ${c}`} />
+                ))}
+              </div>
+            </div>
+
+            {/* ── Colour rows ── */}
+            <div className="space-y-2">
+              {routeColors.map((color, idx) => (
+                <div
+                  key={idx}
+                  className="group flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm hover:border-primary/30 transition-colors"
+                >
+                  {/* Large swatch — click to open picker */}
+                  <label className="relative cursor-pointer shrink-0" title="Klik untuk tukar warna">
+                    <div
+                      className="h-10 w-10 rounded-lg shadow-inner ring-2 ring-black/10 transition-transform group-hover:scale-105"
+                      style={{ background: color }}
+                    />
+                    <input
+                      type="color"
+                      value={color}
+                      onChange={e => setRouteColors(prev => prev.map((c, i) => i === idx ? e.target.value : c))}
+                      className="sr-only"
+                    />
+                  </label>
+
+                  {/* Route label pill */}
+                  <div
+                    className="shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wide"
+                    style={{ background: color, color: fgFor(color) }}
+                  >
+                    Route {idx + 1}
+                  </div>
+
+                  {/* Hex code */}
+                  <span className="flex-1 font-mono text-sm font-medium text-foreground tracking-wide">
+                    {color.toUpperCase()}
+                  </span>
+
+                  {/* Edit button */}
+                  <label
+                    className="relative cursor-pointer flex h-8 items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    title="Tukar warna"
+                  >
+                    <Palette className="size-3.5" />
+                    <span className="hidden sm:inline">Edit</span>
+                    <input
+                      type="color"
+                      value={color}
+                      onChange={e => setRouteColors(prev => prev.map((c, i) => i === idx ? e.target.value : c))}
+                      className="sr-only"
+                    />
+                  </label>
+
+                  {/* Delete button — only visible when >1 colour */}
+                  {routeColors.length > 1 && (
+                    <button
+                      onClick={() => setRouteColors(prev => prev.filter((_, i) => i !== idx))}
+                      className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground/50 hover:bg-destructive/10 hover:text-destructive transition-colors"
+                      title="Buang warna"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+
+              {/* Add colour row */}
+              {routeColors.length < 12 && (
+                <button
+                  onClick={() => setRouteColors(prev => [...prev, '#6366f1'])}
+                  className="flex w-full items-center gap-3 rounded-xl border-2 border-dashed border-border px-4 py-3 text-sm font-medium text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-muted/30 transition-all"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border-2 border-dashed border-current/40">
+                    <Plus className="size-4" />
+                  </div>
+                  Tambah warna
+                </button>
+              )}
+            </div>
+
+            {/* ── Footer ── */}
+            <div className="mt-6 flex items-center justify-between">
+              <button
+                onClick={() => setRouteColors([...DEFAULT_ROUTE_COLORS])}
+                className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline transition-colors"
+              >
+                Reset ke default
+              </button>
+              <Button onClick={handleSaveRouteColors} disabled={!routeColorsDirty}>
+                <Save className="size-4 mr-2" />
+                Simpan Warna
+              </Button>
+            </div>
+          </div>
+        )
+      }
+
       // ── Security ──────────────────────────────────────────────────────────
       case "security":
         return (
           <div>
-            <SectionHeader icon={<Lock className="size-5" />} title="Security" description="Tukar kata laluan akaun anda." />
+            <SectionHeader icon={<Lock className="size-4" />} title="Security" description="Tukar kata laluan akaun anda." />
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2"><Shield className="size-4" />Current Password</label>
@@ -563,7 +654,7 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
       case "danger":
         return (
           <div>
-            <SectionHeader icon={<AlertTriangle className="size-5 text-destructive" />} title="Danger Zone" description="Actions that cannot be undone." />
+            <SectionHeader icon={<AlertTriangle className="size-4 text-destructive" />} title="Danger Zone" description="Actions that cannot be undone." />
             <div className="bg-destructive/10 rounded-lg border border-destructive/50 p-6">
               <div className="flex items-center justify-between gap-4">
                 <div>

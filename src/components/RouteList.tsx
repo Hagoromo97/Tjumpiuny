@@ -126,15 +126,19 @@ const DEFAULT_ROUTES: Route[] = [
 // ── Label color palette ──────────────────────────────────────────────────────
 const LABEL_PALETTE = ['#22c55e', '#3b82f6', '#eab308', '#a855f7', '#ef4444', '#f97316', '#06b6d4', '#ec4899']
 
-// ── Route card color palette (default monochrome — user boleh tukar via color picker) ──
-const ROUTE_COLORS = [
-  '#374151',
-]
+// ── Route card color palette (from Settings → Route Colours, stored in localStorage) ──
+const DEFAULT_ROUTE_COLORS = ['#374151', '#7c3aed', '#0891b2', '#16a34a', '#dc2626', '#d97706']
+const LS_ROUTE_COLORS = 'fcalendar_route_colors'
+const getRouteColorPalette = (): string[] => {
+  try { const v = localStorage.getItem(LS_ROUTE_COLORS); if (v) return JSON.parse(v) } catch { /**/ }
+  return DEFAULT_ROUTE_COLORS
+}
 
 export function RouteList() {
   const { isEditMode, hasUnsavedChanges, isSaving, setHasUnsavedChanges, registerSaveHandler, saveChanges, registerDiscardHandler } = useEditMode()
   const [routes, setRoutes] = useState<Route[]>(DEFAULT_ROUTES)
   const routesSnapshotRef = useRef<Route[]>([])
+  const [routeColorPalette, setRouteColorPalette] = useState<string[]>(getRouteColorPalette)
   const [isLoading, setIsLoading] = useState(true)
   const [currentRouteId, setCurrentRouteId] = useState<string>("route-1")
   const [infoModalOpen, setInfoModalOpen] = useState(false)
@@ -168,6 +172,13 @@ export function RouteList() {
       setEditPanelState({})
     }
   }, [isEditMode])
+
+  // Sync route colour palette when Settings saves new colours
+  useEffect(() => {
+    const handler = () => setRouteColorPalette(getRouteColorPalette())
+    window.addEventListener('fcalendar_route_colors_changed', handler)
+    return () => window.removeEventListener('fcalendar_route_colors_changed', handler)
+  }, [])
 
   // Fetch changelog when an info panel opens
   useEffect(() => {
@@ -964,13 +975,13 @@ export function RouteList() {
         {/* ── Card grid ── */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', justifyContent: 'center' }}>
         {filteredRoutes.map((route, routeIndex) => {
-          const markerColor = route.color || ROUTE_COLORS[routeIndex % ROUTE_COLORS.length]
+          const markerColor = route.color || routeColorPalette[routeIndex % routeColorPalette.length]
           const cardPanel = getCardPanel(route.id)
           const ep = editPanelState[route.id] ?? { name: route.name, code: route.code, shift: route.shift, color: route.color || markerColor, labels: route.labels ?? ['Daily', 'Weekday', 'Alt 1', 'Alt 2'] }
           return (
           <div key={route.id}>
             {/* ── Route Card ── */}
-            <div style={{ width: 340, height: 520, borderRadius: 22, overflow: 'hidden', position: 'relative', background: 'hsl(var(--card))', boxShadow: `0 8px 36px ${markerColor}38, 0 2px 10px rgba(0,0,0,0.12), 0 0 0 2px ${markerColor}55`, border: 'none' }}>
+            <div style={{ width: 340, height: 520, borderRadius: 22, overflow: 'hidden', position: 'relative', background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}>
               {/* Sliding wrapper */}
               <div style={{ position: 'relative', zIndex: 1, display: 'flex', width: 1020, height: '100%', transform: cardPanel.edit ? 'translateX(-680px)' : cardPanel.info ? 'translateX(-340px)' : 'translateX(0)', transition: 'transform 0.38s cubic-bezier(0.4,0,0.2,1)' }}>
 
@@ -1288,7 +1299,7 @@ export function RouteList() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                         <input type="color" value={ep.color} onChange={e => setEditPanelState(prev => ({ ...prev, [route.id]: { ...ep, color: e.target.value } }))} style={{ width: 44, height: 36, borderRadius: 8, border: '1.5px solid hsl(var(--border))', cursor: 'pointer', padding: 2, background: 'hsl(var(--background))' }} />
                         <span style={{ fontSize: '0.78rem', fontFamily: 'monospace', color: 'hsl(var(--muted-foreground))' }}>{ep.color}</span>
-                        <button onClick={() => setEditPanelState(prev => ({ ...prev, [route.id]: { ...ep, color: ROUTE_COLORS[routeIndex % ROUTE_COLORS.length] } }))} style={{ marginLeft: 'auto', fontSize: '0.68rem', padding: '0.2rem 0.55rem', borderRadius: 6, border: '1px solid hsl(var(--border))', background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))', cursor: 'pointer' }}>Reset</button>
+                        <button onClick={() => setEditPanelState(prev => ({ ...prev, [route.id]: { ...ep, color: routeColorPalette[routeIndex % routeColorPalette.length] } }))} style={{ marginLeft: 'auto', fontSize: '0.68rem', padding: '0.2rem 0.55rem', borderRadius: 6, border: '1px solid hsl(var(--border))', background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))', cursor: 'pointer' }}>Reset</button>
                       </div>
                     </div>
                     {/* Labels manager */}

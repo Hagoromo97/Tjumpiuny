@@ -87,15 +87,14 @@ function QuickActionCard({
   return (
     <button
       onClick={() => onNavigate(page)}
-      className="group relative flex flex-col items-start gap-2 rounded-2xl p-4 text-left transition-all duration-200 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] overflow-hidden border border-border/60 bg-card shadow-sm"
+      className="group flex flex-col items-start gap-2.5 rounded-xl p-3.5 text-left border border-border bg-card hover:bg-muted/40 hover:border-border/80 active:scale-[0.97] transition-all duration-150"
     >
-      <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${gradient}`} />
-      <div className={`relative z-10 flex items-center justify-center w-9 h-9 rounded-xl ${gradient} shadow-sm`}>
-        <Icon className="size-4 text-white" />
+      <div className={`flex items-center justify-center w-8 h-8 rounded-lg ${gradient} shadow-sm shrink-0`}>
+        <Icon className="size-3.5 text-white" />
       </div>
-      <div className="relative z-10">
-        <p className="text-sm font-semibold text-foreground">{label}</p>
-        <p className="text-xs text-muted-foreground mt-0.5 leading-tight">{description}</p>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-foreground tracking-tight leading-snug">{label}</p>
+        <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{description}</p>
       </div>
     </button>
   )
@@ -313,6 +312,8 @@ function AppContent() {
         return <Settings section="appearance-font" />
       case "settings-appearance-display":
         return <Settings section="appearance-display" />
+      case "settings-route-colors":
+        return <Settings section="route-colors" />
       case "settings-map":
         return <Settings section="map-defaultview" />
       case "settings-security":
@@ -385,7 +386,7 @@ function AppContent() {
       )}
       
       <main className={`relative flex w-full flex-1 flex-col min-h-0 overflow-hidden bg-background transition-all duration-500 ease-in-out ${(isMobile && openMobile) || (!isMobile && open) ? 'scale-95 opacity-90' : 'scale-100 opacity-100'}`} style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <header className="glass-header sticky top-0 z-30 flex shrink-0 items-center gap-2 px-3 md:px-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.25)] transition-colors duration-300" style={{ paddingTop: 'max(env(safe-area-inset-top), 12px)', paddingBottom: '0.625rem', minHeight: 'calc(3.5rem + max(env(safe-area-inset-top), 12px))' }}>
+        <header className="glass-header sticky top-0 z-30 flex shrink-0 items-center gap-2 px-3 md:px-5 transition-colors duration-300" style={{ paddingTop: 'max(env(safe-area-inset-top), 10px)', paddingBottom: '0.5rem', minHeight: 'calc(3.25rem + max(env(safe-area-inset-top), 10px))' }}>
           <SidebarTrigger className="-ml-1 shrink-0" />
           <Separator orientation="vertical" className="mr-1 md:mr-2 h-4 shrink-0" />
           <Breadcrumb className="min-w-0 flex-1">

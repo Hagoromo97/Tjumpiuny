@@ -1,24 +1,11 @@
 import { useEffect, useState } from "react"
 
 export type ColorMode = "light" | "dark"
-export type ColorTheme =
-  | "default"
-  | "bubblegum"
-  | "candyland"
-  | "claude"
-  | "cyberpunk"
-  | "northern-lights"
-  | "ocean-breeze"
 
-/** Approximate background hex per theme/mode for the PWA meta theme-color tag */
-const THEME_META_BG: Record<string, { light: string; dark: string }> = {
-  "default":          { light: "#dce8f3", dark: "#0e1117" },
-  "bubblegum":        { light: "#f0d8e5", dark: "#1a2030" },
-  "candyland":        { light: "#fde8ef", dark: "#1a1428" },
-  "claude":           { light: "#faf6ef", dark: "#1a1510" },
-  "cyberpunk":        { light: "#f0f4fa", dark: "#0c0e1c" },
-  "northern-lights":  { light: "#eff7f7", dark: "#111828" },
-  "ocean-breeze":     { light: "#f0f6f8", dark: "#131e2a" },
+/** PWA meta theme-color backgrounds per mode */
+const META_BG: Record<ColorMode, string> = {
+  light: "#f4f6fb",
+  dark:  "#090e1a",
 }
 
 export type AppFont =
@@ -59,11 +46,6 @@ export function useTheme() {
     return "light"
   })
 
-  const [colorTheme, setColorTheme] = useState<ColorTheme>(() => {
-    const stored = localStorage.getItem("color-theme") as ColorTheme | null
-    return stored ?? "default"
-  })
-
   const [appFont, setAppFont] = useState<AppFont>(() => {
     return (localStorage.getItem("app-font") as AppFont | null) ?? "inter"
   })
@@ -76,23 +58,17 @@ export function useTheme() {
     return (localStorage.getItem("text-size") as TextSize | null) ?? "16"
   })
 
-  // Apply color mode + theme to DOM
+  // Apply color mode to DOM
   useEffect(() => {
     const root = document.documentElement
-    root.classList.toggle("dark", mode === "dark")
+    root.classList.toggle("dark",  mode === "dark")
     root.classList.toggle("light", mode === "light")
-    if (colorTheme === "default") {
-      root.removeAttribute("data-theme")
-    } else {
-      root.setAttribute("data-theme", colorTheme)
-    }
+    // Remove any stale data-theme (legacy)
+    root.removeAttribute("data-theme")
     localStorage.setItem("color-mode", mode)
-    localStorage.setItem("color-theme", colorTheme)
 
-    // Update PWA meta theme-color to match actual background
-    const metaColor =
-      THEME_META_BG[colorTheme]?.[mode] ??
-      (mode === "dark" ? "#111827" : "#f8fafc")
+    // Update PWA meta theme-color
+    const metaColor = META_BG[mode]
     const allMetas = document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
     if (allMetas.length === 0) {
       const meta = document.createElement("meta")
@@ -102,7 +78,7 @@ export function useTheme() {
     } else {
       allMetas.forEach(meta => meta.setAttribute("content", metaColor))
     }
-  }, [mode, colorTheme])
+  }, [mode])
 
   // Font
   useEffect(() => {
@@ -114,10 +90,8 @@ export function useTheme() {
     localStorage.setItem("app-font", appFont)
   }, [appFont])
 
-  // App zoom (scales entire layout)
+  // App zoom (scales entire layout, applied to body to avoid viewport distortion)
   useEffect(() => {
-    // Apply zoom to body, not html — html-level zoom distorts viewport units
-    // causing circles to appear oval and squares to appear tall
     document.documentElement.style.zoom = ""
     document.body.style.zoom = `${appZoom}%`
     localStorage.setItem("app-zoom", appZoom)
@@ -131,7 +105,7 @@ export function useTheme() {
 
   const toggleMode = () => setMode(prev => prev === "light" ? "dark" : "light")
 
-  // Backward-compat alias used by old ThemeToggle
+  // Backward-compat aliases
   const theme = mode
   const setTheme = setMode
   const toggleTheme = toggleMode
@@ -140,7 +114,6 @@ export function useTheme() {
     theme, setTheme, toggleTheme,
     mode, setMode, toggleMode,
     resolvedMode: mode,
-    colorTheme, setColorTheme,
     appFont, setAppFont,
     appZoom, setAppZoom,
     textSize, setTextSize,
