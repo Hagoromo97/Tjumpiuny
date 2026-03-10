@@ -421,196 +421,191 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
     <div className="flex flex-col flex-1 min-h-0">
 
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border shrink-0 bg-card">
-        {/* Nav */}
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => navigate(-1)}
-            className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-          >
-            <ChevronLeft className="size-4" />
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border shrink-0 bg-card/80 backdrop-blur-sm">
+        <div className="flex items-center gap-1 shrink-0">
+          <button onClick={() => navigate(-1)} className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+            <ChevronLeft className="size-3.5" />
           </button>
-          <button
-            onClick={goToday}
-            className="h-8 px-3 text-xs font-semibold rounded-lg border border-border bg-card hover:bg-muted transition-colors text-foreground"
-          >
+          <button onClick={goToday} className="h-7 px-2.5 text-[11px] font-semibold rounded-lg border border-border bg-card hover:bg-muted transition-colors">
             Today
           </button>
-          <button
-            onClick={() => navigate(1)}
-            className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-          >
-            <ChevronRight className="size-4" />
+          <button onClick={() => navigate(1)} className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+            <ChevronRight className="size-3.5" />
           </button>
         </div>
 
-        {/* Label */}
-        <h2 className="text-sm font-bold flex-1 px-1">
-          {headerLabel}
-        </h2>
+        <h2 className="text-sm font-bold flex-1 truncate">{headerLabel}</h2>
 
-        {/* Add buttons — edit mode only */}
         {isEditMode && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={openAddResource}
-              className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border bg-card hover:bg-muted text-xs font-semibold transition-colors text-foreground"
+              className="flex items-center gap-1 h-7 px-2.5 rounded-lg border border-border bg-card hover:bg-muted text-[11px] font-semibold transition-colors"
             >
-              <Users className="size-3.5" />
-              Add Staff
+              <Users className="size-3" />Staff
             </button>
             <button
               onClick={() => openAddShift()}
-              className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors shadow-sm"
+              className="flex items-center gap-1 h-7 px-2.5 rounded-lg bg-primary text-primary-foreground text-[11px] font-semibold hover:bg-primary/90 transition-colors shadow-sm"
             >
-              <Plus className="size-3.5" />
-              Add Shift
+              <Plus className="size-3" />Shift
             </button>
           </div>
         )}
       </div>
 
-      {/* ── Timeline grid ────────────────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 overflow-auto bg-background">
+      {/* ── Grid ─────────────────────────────────────────────────────────────── */}
+      <div className="flex-1 min-h-0 overflow-auto">
         {resources.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-20 text-muted-foreground">
-            <Users className="size-10 opacity-30" />
-            <div className="text-sm">No staff added yet</div>
+          <div className="flex flex-col items-center justify-center gap-4 h-full text-muted-foreground py-20">
+            <div className="w-16 h-16 rounded-2xl bg-muted/60 flex items-center justify-center">
+              <Users className="size-7 opacity-30" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-semibold text-foreground">No staff yet</p>
+              <p className="text-xs text-muted-foreground mt-1">Add staff to start building the roster</p>
+            </div>
             {isEditMode && (
               <button
                 onClick={openAddResource}
-                className="flex items-center gap-1.5 h-8 px-4 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
+                className="flex items-center gap-1.5 h-8 px-4 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors shadow-sm"
               >
-                <Plus className="size-3.5" />
-                Add Staff
+                <Plus className="size-3.5" />Add Staff
               </button>
             )}
           </div>
         ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: `160px repeat(${colDates.length}, minmax(140px, 1fr))`,
-            }}
-          >
-            {/* ── Frozen header: Staff column ─────────────────────────────── */}
-            <div
-              className="sticky top-0 left-0 z-30 bg-card border-b border-r border-border px-4 py-3 flex items-center gap-2 text-[11px] font-bold text-muted-foreground uppercase tracking-widest whitespace-nowrap shadow-[2px_0_8px_-2px_rgba(0,0,0,0.08)]"
-            >
-              <Users className="size-3.5 shrink-0" />
-              Staff
-            </div>
-
-            {/* ── Day column headers ───────────────────────────────────────── */}
-            {colDates.map(date => {
-              const isToday = isSameDay(date, today)
-              const isWeekend = date.getDay() === 0 || date.getDay() === 6
-              return (
-                <div
-                  key={toDateKey(date)}
-                  className={`sticky top-0 z-20 bg-card border-b border-r border-border text-center py-3 px-2 ${
-                    isToday ? "bg-primary/5" : isWeekend ? "bg-muted/30" : ""
-                  }`}
-                >
-                  <div className={`text-[10px] font-bold uppercase tracking-widest mb-1.5 ${
-                    isToday ? "text-primary" : isWeekend ? "text-muted-foreground/60" : "text-muted-foreground"
-                  }`}>
-                    {DAYS_SHORT[date.getDay()]}
-                  </div>
-                  <div className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-sm font-bold transition-colors ${
-                    isToday ? "bg-primary text-primary-foreground shadow-sm" : isWeekend ? "text-muted-foreground/60" : "text-foreground"
-                  }`}>
-                    {date.getDate()}
-                  </div>
-                </div>
-              )
-            })}
-
-            {/* ── Resource rows ────────────────────────────────────────────── */}
-            {resources.map((resource, ri) => {
-              const rowShifts = shifts.filter(s => s.resourceId === resource.id)
-              const rowBg = ri % 2 !== 0 ? "bg-muted/[0.04]" : "bg-background"
-              return (
-                <div key={resource.id} style={{ display: "contents" }}>
-
-                  {/* Frozen name cell */}
-                  <div
-                    className="sticky left-0 z-10 bg-card border-b border-r border-border px-3 py-3 flex flex-col justify-center gap-2 shadow-[2px_0_8px_-2px_rgba(0,0,0,0.08)]"
-                    style={{ minHeight: "88px" }}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span
-                        className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-white text-[11px] font-bold shadow-sm"
-                        style={{ backgroundColor: resource.color }}
-                      >
-                        {resource.name.split(" ").map(w => w[0]).slice(0, 2).join("")}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold text-foreground leading-tight truncate">{resource.name}</p>
-                        <p className="text-[10px] text-muted-foreground leading-tight mt-0.5 truncate">{resource.role}</p>
+          <table className="border-collapse" style={{ width: "100%", tableLayout: "fixed" }}>
+            <colgroup>
+              <col style={{ width: "164px" }} />
+              {colDates.map(d => <col key={toDateKey(d)} style={{ minWidth: "120px" }} />)}
+            </colgroup>
+            <thead>
+              <tr>
+                <th className="sticky top-0 left-0 z-30 bg-card border-b border-r border-border px-3 py-3 text-left">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                    <Users className="size-3" />Staff
+                  </span>
+                </th>
+                {colDates.map(date => {
+                  const isToday = isSameDay(date, today)
+                  const isWeekend = date.getDay() === 0 || date.getDay() === 6
+                  return (
+                    <th
+                      key={toDateKey(date)}
+                      className={`sticky top-0 z-20 border-b border-r border-border text-center py-2.5 px-2 font-normal ${
+                        isToday ? "bg-primary/[0.06]" : isWeekend ? "bg-muted/20" : "bg-card"
+                      }`}
+                    >
+                      <div className={`text-[9px] font-bold uppercase tracking-widest mb-1.5 ${
+                        isToday ? "text-primary" : isWeekend ? "text-muted-foreground/50" : "text-muted-foreground"
+                      }`}>
+                        {DAYS_SHORT[date.getDay()]}
                       </div>
-                    </div>
-                    {isEditMode && (
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={e => { e.stopPropagation(); openEditResource(resource) }}
-                          className="h-6 px-2 flex items-center gap-1 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors text-[10px] font-medium"
-                          title="Edit staff"
-                        >
-                          <Pencil className="size-2.5" /> Edit
-                        </button>
-                        <button
-                          onClick={e => { e.stopPropagation(); deleteResource(resource.id) }}
-                          className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                          title="Delete staff"
-                        >
-                          <Trash2 className="size-3" />
-                        </button>
+                      <div className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
+                        isToday
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : isWeekend
+                          ? "text-muted-foreground/50"
+                          : "text-foreground/80"
+                      }`}>
+                        {date.getDate()}
                       </div>
-                    )}
-                  </div>
+                    </th>
+                  )
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {resources.map((resource, ri) => {
+                const rowShifts = shifts.filter(s => s.resourceId === resource.id)
+                const viewShiftCount = colDates.reduce((acc, d) =>
+                  acc + rowShifts.filter(s => s.date === toDateKey(d)).length, 0)
+                return (
+                  <tr key={resource.id} className={ri % 2 !== 0 ? "bg-muted/[0.03]" : ""}>
 
-                  {/* Day cells */}
-                  {colDates.map(date => {
-                    const dateKey = toDateKey(date)
-                    const dayShifts = rowShifts.filter(s => s.date === dateKey)
-                    const isToday = isSameDay(date, today)
-                    const isWeekend = date.getDay() === 0 || date.getDay() === 6
-                    return (
-                      <div
-                        key={dateKey}
-                        className={`border-b border-r border-border relative px-2 py-2 flex flex-col gap-1.5 transition-colors ${
-                          isToday ? "bg-primary/[0.04]" : isWeekend ? "bg-muted/20" : rowBg
-                        } ${
-                          isEditMode ? "cursor-pointer hover:bg-muted/40" : ""
-                        }`}
-                        style={{ minHeight: "88px" }}
-                        onClick={() => { if (isEditMode) openAddShift(resource.id, dateKey) }}
-                      >
-                        {dayShifts.map(shift => (
-                          <ShiftBlock
-                            key={shift.id}
-                            shift={shift}
-                            isEditMode={isEditMode}
-                            onEdit={() => { if (isEditMode) openEditShift(shift) }}
-                          />
-                        ))}
-                        {dayShifts.length === 0 && isEditMode && (
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                            <Plus className="size-4 text-muted-foreground/20" />
+                    {/* ── Staff cell ── */}
+                    <td className="sticky left-0 z-10 bg-card border-b border-r border-border p-3 align-top">
+                      <div className="flex items-start gap-2.5">
+                        <span
+                          className="w-8 h-8 rounded-xl shrink-0 flex items-center justify-center text-white text-[10px] font-black shadow-sm mt-0.5"
+                          style={{ backgroundColor: resource.color }}
+                        >
+                          {resource.name.split(" ").map(w => w[0]).slice(0, 2).join("")}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[11px] font-bold text-foreground leading-tight truncate">{resource.name}</p>
+                          {resource.role && (
+                            <p className="text-[9px] text-muted-foreground leading-tight mt-0.5 truncate">{resource.role}</p>
+                          )}
+                          <span
+                            className="inline-block mt-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-full leading-none"
+                            style={{ backgroundColor: `${resource.color}18`, color: resource.color }}
+                          >
+                            {viewShiftCount} shift{viewShiftCount !== 1 ? "s" : ""}
+                          </span>
+                        </div>
+                      </div>
+                      {isEditMode && (
+                        <div className="flex items-center gap-0.5 mt-2">
+                          <button
+                            onClick={e => { e.stopPropagation(); openEditResource(resource) }}
+                            className="h-5 px-1.5 flex items-center gap-1 rounded text-[9px] font-medium bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <Pencil className="size-2.5" />Edit
+                          </button>
+                          <button
+                            onClick={e => { e.stopPropagation(); deleteResource(resource.id) }}
+                            className="h-5 w-5 flex items-center justify-center rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors ml-0.5"
+                          >
+                            <Trash2 className="size-2.5" />
+                          </button>
+                        </div>
+                      )}
+                    </td>
+
+                    {/* ── Day cells ── */}
+                    {colDates.map(date => {
+                      const dateKey = toDateKey(date)
+                      const dayShifts = rowShifts.filter(s => s.date === dateKey)
+                      const isToday = isSameDay(date, today)
+                      const isWeekend = date.getDay() === 0 || date.getDay() === 6
+                      return (
+                        <td
+                          key={dateKey}
+                          className={`border-b border-r border-border align-top p-1.5 transition-colors ${
+                            isToday ? "bg-primary/[0.02]" : isWeekend ? "bg-muted/10" : ""
+                          } ${isEditMode ? "cursor-pointer hover:bg-muted/25" : ""}`}
+                          style={{ minHeight: "72px" }}
+                          onClick={() => { if (isEditMode) openAddShift(resource.id, dateKey) }}
+                        >
+                          <div className="flex flex-col gap-1">
+                            {dayShifts.map(shift => (
+                              <ShiftBlock
+                                key={shift.id}
+                                shift={shift}
+                                isEditMode={isEditMode}
+                                onEdit={() => openEditShift(shift)}
+                              />
+                            ))}
+                            {isEditMode && dayShifts.length === 0 && (
+                              <div className="h-8 flex items-center justify-center rounded-lg border border-dashed border-border/40 opacity-0 hover:opacity-100 transition-opacity">
+                                <Plus className="size-3 text-muted-foreground/30" />
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              )
-            })}
-          </div>
+                        </td>
+                      )
+                    })}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         )}
       </div>
 
-      {/* ── Shift Dialog ───────────────────────────────────────────────────────── */}
+      {/* ── Shift Dialog ─────────────────────────────────────────────────────── */}
       <Dialog open={shiftDialog.open} onOpenChange={o => !o && setShiftDialog(p => ({ ...p, open: false }))}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -619,84 +614,43 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
               {shiftDialog.mode === "add" ? "Add Shift" : "Edit Shift"}
             </DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col gap-5 py-2">
-            {/* Title */}
-            <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-4 py-2">
+            <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Shift Name</label>
-              <Input
-                placeholder="e.g. Morning, Afternoon, Night"
-                value={shiftForm.title}
-                onChange={e => setShiftForm(p => ({ ...p, title: e.target.value }))}
-              />
+              <Input placeholder="e.g. Morning, Afternoon, Night" value={shiftForm.title} onChange={e => setShiftForm(p => ({ ...p, title: e.target.value }))} />
             </div>
-            {/* Resource */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Staff</label>
-              <select
-                value={shiftForm.resourceId}
-                onChange={e => setShiftForm(p => ({ ...p, resourceId: e.target.value }))}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                {resources.map(r => (
-                  <option key={r.id} value={r.id}>{r.name}</option>
-                ))}
+              <select value={shiftForm.resourceId} onChange={e => setShiftForm(p => ({ ...p, resourceId: e.target.value }))} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                {resources.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
             </div>
-            {/* Date */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Date</label>
-              <Input
-                type="date"
-                value={shiftForm.date}
-                onChange={e => setShiftForm(p => ({ ...p, date: e.target.value }))}
-              />
+              <Input type="date" value={shiftForm.date} onChange={e => setShiftForm(p => ({ ...p, date: e.target.value }))} />
             </div>
-            {/* Start / End */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Start</label>
-                <select
-                  value={shiftForm.startHour}
-                  onChange={e => setShiftForm(p => ({ ...p, startHour: Number(e.target.value) }))}
-                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  {HOUR_LABELS.map((lbl, i) => (
-                    <option key={i} value={i}>{lbl}</option>
-                  ))}
+                <select value={shiftForm.startHour} onChange={e => setShiftForm(p => ({ ...p, startHour: Number(e.target.value) }))} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                  {HOUR_LABELS.map((lbl, i) => <option key={i} value={i}>{lbl}</option>)}
                 </select>
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">End</label>
-                <select
-                  value={shiftForm.endHour}
-                  onChange={e => setShiftForm(p => ({ ...p, endHour: Number(e.target.value) }))}
-                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  {HOUR_LABELS.map((lbl, i) => (
-                    <option key={i + 1} value={i + 1}>{lbl}</option>
-                  ))}
+                <select value={shiftForm.endHour} onChange={e => setShiftForm(p => ({ ...p, endHour: Number(e.target.value) }))} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                  {HOUR_LABELS.map((lbl, i) => <option key={i + 1} value={i + 1}>{lbl}</option>)}
                 </select>
               </div>
             </div>
-            {/* Color */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Color</label>
               <div className="flex flex-wrap gap-2">
                 {SHIFT_COLORS.map(c => (
-                  <button
-                    key={c.value}
-                    onClick={() => setShiftForm(p => ({ ...p, color: c.value }))}
-                    title={c.label}
-                    className={`w-7 h-7 rounded-full flex items-center justify-center ring-2 ring-offset-2 transition-all ${
-                      shiftForm.color === c.value ? "ring-foreground scale-110" : "ring-transparent hover:ring-border"
-                    }`}
-                    style={{ backgroundColor: c.value }}
-                  >
-                    {shiftForm.color === c.value && (
-                      <svg className="size-3.5 text-white" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <polyline points="3,8 7,12 13,4" />
-                      </svg>
-                    )}
+                  <button key={c.value} onClick={() => setShiftForm(p => ({ ...p, color: c.value }))} title={c.label}
+                    className={`w-7 h-7 rounded-full flex items-center justify-center ring-2 ring-offset-2 transition-all ${shiftForm.color === c.value ? "ring-foreground scale-110" : "ring-transparent hover:ring-border"}`}
+                    style={{ backgroundColor: c.value }}>
+                    {shiftForm.color === c.value && <svg className="size-3.5 text-white" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3,8 7,12 13,4" /></svg>}
                   </button>
                 ))}
               </div>
@@ -705,31 +659,20 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
           <div className="flex items-center justify-between gap-2 pt-2">
             <div>
               {shiftDialog.mode === "edit" && shiftDialog.shift && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={async () => {
-                    await deleteShift(shiftDialog.shift!.id)
-                    setShiftDialog({ open: false, mode: "add" })
-                  }}
-                  className="gap-1.5"
-                >
-                  <Trash2 className="size-3.5" />
-                  Delete Shift
+                <Button variant="destructive" size="sm" onClick={async () => { await deleteShift(shiftDialog.shift!.id); setShiftDialog({ open: false, mode: "add" }) }} className="gap-1.5">
+                  <Trash2 className="size-3.5" />Delete
                 </Button>
               )}
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => setShiftDialog(p => ({ ...p, open: false }))}>Cancel</Button>
-              <Button size="sm" onClick={saveShift}>
-                {shiftDialog.mode === "add" ? "Add Shift" : "Save Changes"}
-              </Button>
+              <Button size="sm" onClick={saveShift}>{shiftDialog.mode === "add" ? "Add Shift" : "Save"}</Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* ── Resource Dialog ────────────────────────────────────────────────────── */}
+      {/* ── Resource Dialog ──────────────────────────────────────────────────── */}
       <Dialog open={resourceDialog.open} onOpenChange={o => !o && setResourceDialog(p => ({ ...p, open: false }))}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -738,40 +681,23 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
               {resourceDialog.mode === "add" ? "Add Staff" : "Edit Staff"}
             </DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col gap-5 py-2">
-            <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-4 py-2">
+            <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Name</label>
-              <Input
-                placeholder="e.g. Ahmad Faris"
-                value={resForm.name}
-                onChange={e => setResForm(p => ({ ...p, name: e.target.value }))}
-              />
+              <Input placeholder="e.g. Ahmad Faris" value={resForm.name} onChange={e => setResForm(p => ({ ...p, name: e.target.value }))} />
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Role</label>
-              <Input
-                placeholder="e.g. Driver, Operator"
-                value={resForm.role}
-                onChange={e => setResForm(p => ({ ...p, role: e.target.value }))}
-              />
+              <Input placeholder="e.g. Driver, Operator" value={resForm.role} onChange={e => setResForm(p => ({ ...p, role: e.target.value }))} />
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Color</label>
               <div className="flex flex-wrap gap-2">
                 {RESOURCE_COLORS.map(c => (
-                  <button
-                    key={c}
-                    onClick={() => setResForm(p => ({ ...p, color: c }))}
-                    className={`w-7 h-7 rounded-full flex items-center justify-center ring-2 ring-offset-2 transition-all ${
-                      resForm.color === c ? "ring-foreground scale-110" : "ring-transparent hover:ring-border"
-                    }`}
-                    style={{ backgroundColor: c }}
-                  >
-                    {resForm.color === c && (
-                      <svg className="size-3.5 text-white" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <polyline points="3,8 7,12 13,4" />
-                      </svg>
-                    )}
+                  <button key={c} onClick={() => setResForm(p => ({ ...p, color: c }))}
+                    className={`w-7 h-7 rounded-full flex items-center justify-center ring-2 ring-offset-2 transition-all ${resForm.color === c ? "ring-foreground scale-110" : "ring-transparent hover:ring-border"}`}
+                    style={{ backgroundColor: c }}>
+                    {resForm.color === c && <svg className="size-3.5 text-white" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3,8 7,12 13,4" /></svg>}
                   </button>
                 ))}
               </div>
@@ -780,25 +706,14 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
           <div className="flex items-center justify-between gap-2 pt-2">
             <div>
               {resourceDialog.mode === "edit" && resourceDialog.resource && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={async () => {
-                    await deleteResource(resourceDialog.resource!.id)
-                    setResourceDialog({ open: false, mode: "add" })
-                  }}
-                  className="gap-1.5"
-                >
-                  <Trash2 className="size-3.5" />
-                  Delete Staff
+                <Button variant="destructive" size="sm" onClick={async () => { await deleteResource(resourceDialog.resource!.id); setResourceDialog({ open: false, mode: "add" }) }} className="gap-1.5">
+                  <Trash2 className="size-3.5" />Delete
                 </Button>
               )}
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => setResourceDialog(p => ({ ...p, open: false }))}>Cancel</Button>
-              <Button size="sm" onClick={saveResource}>
-                {resourceDialog.mode === "add" ? "Add" : "Save"}
-              </Button>
+              <Button size="sm" onClick={saveResource}>{resourceDialog.mode === "add" ? "Add" : "Save"}</Button>
             </div>
           </div>
         </DialogContent>
@@ -824,18 +739,23 @@ function ShiftBlock({
 
   return (
     <div
-      className={`rounded-lg select-none transition-all overflow-hidden ${
+      className={`rounded-md overflow-hidden select-none transition-all ${
         isEditMode ? "cursor-pointer hover:brightness-95 active:scale-[0.98]" : "cursor-default"
       }`}
-      style={{ backgroundColor: `${shift.color}15`, border: `1px solid ${shift.color}35` }}
+      style={{ backgroundColor: `${shift.color}12`, border: `1px solid ${shift.color}30` }}
       onClick={e => { e.stopPropagation(); if (isEditMode) onEdit() }}
       title={`${shift.title}: ${startLabel} – ${endLabel} (${duration}h)`}
     >
-      <div className="h-0.5 w-full" style={{ backgroundColor: shift.color }} />
-      <div className="px-2.5 py-1.5">
-        <div className="text-[11px] font-bold leading-tight truncate" style={{ color: shift.color }}>{shift.title}</div>
-        <div className="text-[10px] leading-tight text-muted-foreground mt-0.5 truncate">{startLabel} – {endLabel}</div>
-        <div className="inline-flex items-center mt-1 px-1.5 py-0.5 rounded text-[9px] font-semibold" style={{ backgroundColor: `${shift.color}20`, color: shift.color }}>{duration}h</div>
+      <div className="h-[3px] w-full" style={{ backgroundColor: shift.color }} />
+      <div className="px-2 py-1.5">
+        <div className="text-[10px] font-bold leading-tight truncate" style={{ color: shift.color }}>
+          {shift.title}
+        </div>
+        {isEditMode && (
+          <div className="text-[9px] leading-tight text-muted-foreground mt-0.5 truncate">
+            {startLabel} – {endLabel} · {duration}h
+          </div>
+        )}
       </div>
     </div>
   )

@@ -989,38 +989,36 @@ export function RouteList() {
                 <div style={{ width: 340, flexShrink: 0, display: 'flex', flexDirection: 'column', height: 520 }}>
 
                   {/* ── Colored header band ── */}
-                  <div style={{ position: 'relative', height: 138, background: `linear-gradient(140deg, ${markerColor} 0%, ${markerColor}dd 60%, ${markerColor}99 100%)`, overflow: 'hidden', flexShrink: 0 }}>
+                  <div style={{ position: 'relative', height: 138, background: 'transparent', overflow: 'hidden', flexShrink: 0 }}>
                     {/* Decorative circles behind */}
-                    <div style={{ position: 'absolute', width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', top: -60, right: -40 }} />
-                    <div style={{ position: 'absolute', width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', bottom: -30, left: 20 }} />
-                    <div style={{ position: 'absolute', width: 60, height: 60, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', top: 10, right: 60 }} />
+                    <div style={{ position: 'absolute', width: 180, height: 180, borderRadius: '50%', background: `${markerColor}12`, top: -60, right: -40 }} />
+                    <div style={{ position: 'absolute', width: 100, height: 100, borderRadius: '50%', background: `${markerColor}09`, bottom: -30, left: 20 }} />
+                    <div style={{ position: 'absolute', width: 60, height: 60, borderRadius: '50%', background: `${markerColor}10`, top: 10, right: 60 }} />
 
                     {/* Header content */}
                     <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'flex-start', gap: '0.85rem', padding: '1.1rem 1.2rem 0' }}>
                       {/* Truck avatar */}
-                      <div style={{ width: 50, height: 50, borderRadius: 14, background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)', border: '1.5px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
-                        <Truck style={{ width: 22, height: 22, color: '#fff' }} />
+                      <div style={{ width: 50, height: 50, borderRadius: 14, background: `${markerColor}18`, backdropFilter: 'blur(8px)', border: `1.5px solid ${markerColor}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: `0 4px 12px ${markerColor}20` }}>
+                        <Truck style={{ width: 22, height: 22, color: markerColor }} />
                       </div>
                       {/* Name + badges */}
                       <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
-                        <h3 style={{ margin: '0 0 0.35rem', fontSize: '1.05rem', fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>{route.name}</h3>
+                        <h3 style={{ margin: '0 0 0.35rem', fontSize: '1.05rem', fontWeight: 800, color: 'hsl(var(--foreground))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{route.name}</h3>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: '0.72rem', fontWeight: 700, fontFamily: 'monospace', background: 'rgba(255,255,255,0.22)', color: '#fff', padding: '2px 9px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.3)', backdropFilter: 'blur(4px)' }}>{route.code}</span>
-                          <span style={{ fontSize: '0.72rem', fontWeight: 700, background: 'rgba(0,0,0,0.18)', color: '#fff', padding: '2px 9px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.15)' }}>{route.shift}</span>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700, fontFamily: 'monospace', background: `${markerColor}18`, color: markerColor, padding: '2px 9px', borderRadius: 7, border: `1px solid ${markerColor}35` }}>{route.code}</span>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700, background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))', padding: '2px 9px', borderRadius: 7, border: '1px solid hsl(var(--border))' }}>{route.shift}</span>
                           {pinnedIds.has(route.id) && <span style={{ fontSize: '0.65rem' }}>📌</span>}
                         </div>
                       </div>
                       {/* Stops count pill */}
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.22)', backdropFilter: 'blur(6px)', border: '1.5px solid rgba(255,255,255,0.35)', borderRadius: 12, padding: '0.3rem 0.65rem', flexShrink: 0, minWidth: 44 }}>
-                        <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#fff', lineHeight: 1, textShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>{route.deliveryPoints.length}</span>
-                        <span style={{ fontSize: '0.5rem', fontWeight: 700, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>stops</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: `${markerColor}15`, border: `1.5px solid ${markerColor}35`, borderRadius: 12, padding: '0.3rem 0.65rem', flexShrink: 0, minWidth: 44 }}>
+                        <span style={{ fontSize: '1.2rem', fontWeight: 900, color: markerColor, lineHeight: 1 }}>{route.deliveryPoints.length}</span>
+                        <span style={{ fontSize: '0.5rem', fontWeight: 700, color: markerColor, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.08em' }}>stops</span>
                       </div>
                     </div>
 
-                    {/* Bottom wave */}
-                    <svg viewBox="0 0 340 24" style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: 24 }} preserveAspectRatio="none">
-                      <path d="M0 24 L0 10 Q85 0 170 12 Q255 24 340 8 L340 24 Z" fill="hsl(var(--card))" />
-                    </svg>
+                    {/* Bottom separator */}
+                    <div style={{ position: 'absolute', bottom: 0, left: '1.2rem', right: '1.2rem', height: 1, background: `linear-gradient(90deg, transparent, ${markerColor}30, transparent)` }} />
                   </div>
 
                   {/* ── Body ── */}
