@@ -3,7 +3,6 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt"
 
 const RouteList = lazy(() => import("@/components/RouteList").then(m => ({ default: m.RouteList })))
-const Calendar = lazy(() => import("@/components/Calendar").then(m => ({ default: m.Calendar })))
 const Settings = lazy(() => import("@/components/Settings").then(m => ({ default: m.Settings })))
 const PlanoVM = lazy(() => import("@/components/PlanoVM").then(m => ({ default: m.PlanoVM })))
 const DeliveryTableDialog = lazy(() => import("@/components/DeliveryTableDialog").then(m => ({ default: m.DeliveryTableDialog })))
@@ -13,7 +12,7 @@ const Rooster = lazy(() => import("@/components/Rooster").then(m => ({ default: 
 import { EditModeProvider } from "@/contexts/EditModeContext"
 import { DeviceProvider } from "@/contexts/DeviceContext"
 import { Toaster } from "sonner"
-import { Home, Package, Settings2, Calendar as CalendarIcon, Images, ChevronDown, Truck, LayoutList, List, Layers, MapPin, ClipboardList, Users } from "lucide-react"
+import { Home, Package, Settings2, Images, ChevronDown, Truck, List, Layers, MapPin, ClipboardList, Users } from "lucide-react"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -167,7 +166,6 @@ function HomePage({ onNavigate }: { onNavigate: (page: string) => void }) {
       <div>
         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5 px-0.5">Quick Access</p>
         <div className="grid grid-cols-2 gap-3">
-          <QuickActionCard icon={CalendarIcon} label="Calendar"   description="View monthly schedule" page="calendar"    gradient="bg-gradient-to-br from-blue-500 to-blue-600"   onNavigate={onNavigate} />
           <QuickActionCard icon={ClipboardList} label="Route List" description="Manage vending routes" page="route-list" gradient="bg-gradient-to-br from-violet-500 to-violet-600" onNavigate={onNavigate} />
           <QuickActionCard icon={MapPin}        label="Location"   description="Delivery records"       page="deliveries" gradient="bg-gradient-to-br from-emerald-500 to-emerald-600" onNavigate={onNavigate} />
           <QuickActionCard icon={Users}         label="Rooster"    description="Team schedule"          page="rooster"    gradient="bg-gradient-to-br from-orange-500 to-orange-600"  onNavigate={onNavigate} />
@@ -294,16 +292,6 @@ function AppContent() {
         )
       case "map-marker":
         return <MapMarkerPage />
-      case "calendar-month":
-        return <Calendar view="month" />
-      case "calendar-week":
-        return <Calendar view="week" />
-      case "calendar-day":
-        return <Calendar view="day" />
-      case "calendar-list":
-        return <Calendar view="list" />
-      case "calendar":
-        return <Calendar view="month" />
       case "rooster":
         return <Rooster viewMode={roosterViewMode} />
       case "settings":
@@ -337,18 +325,8 @@ function AppContent() {
         return { parent: { label: "Vending Machine", icon: Package }, current: "Location" }
       case "map-marker":
         return { parent: { label: "Vending Machine", icon: Package }, current: "Map Marker" }
-      case "calendar-month":
-        return { parent: { label: "Calendar", icon: CalendarIcon }, current: "Month View" }
-      case "calendar-week":
-        return { parent: { label: "Calendar", icon: CalendarIcon }, current: "Week View" }
-      case "calendar-day":
-        return { parent: { label: "Calendar", icon: CalendarIcon }, current: "Day View" }
-      case "calendar-list":
-        return { parent: { label: "Calendar", icon: CalendarIcon }, current: "List View" }
-      case "calendar":
-        return { parent: { label: "Calendar", icon: CalendarIcon }, current: "Month View" }
       case "rooster":
-        return { parent: { label: "Calendar", icon: CalendarIcon }, current: "Rooster" }
+        return { parent: { label: "Schedule", icon: Users }, current: "Rooster" }
       case "settings":
       case "settings-profile":
         return { parent: { label: "Settings", icon: Settings2 }, current: "Profile" }
@@ -448,30 +426,6 @@ function AppContent() {
               ))}
             </div>
           )}
-
-          {/* Calendar view cycle button — single multi-state button */}
-          {["calendar","calendar-month","calendar-week","calendar-day","calendar-list"].includes(currentPage) && (() => {
-            const VIEWS = ["calendar-month", "calendar-week", "calendar-day", "calendar-list"] as const
-            const LABELS: Record<string, string> = {
-              "calendar-month": "Month",
-              "calendar-week":  "Week",
-              "calendar-day":   "Day",
-              "calendar-list":  "List",
-            }
-            const active = currentPage === "calendar" ? "calendar-month" : currentPage
-            const currentIdx = VIEWS.indexOf(active as typeof VIEWS[number])
-            const nextView = VIEWS[(currentIdx + 1) % VIEWS.length]
-            return (
-              <button
-                onClick={() => handlePageChange(nextView)}
-                className="flex items-center gap-1.5 shrink-0 h-8 px-3 rounded-lg border border-border bg-muted/40 hover:bg-muted/70 text-xs font-semibold text-foreground transition-all duration-150 shadow-sm"
-              >
-                {active === "calendar-list" && <LayoutList className="size-3 shrink-0" />}
-                {LABELS[active]}
-                <ChevronDown className="size-3 shrink-0 text-muted-foreground" />
-              </button>
-            )
-          })()}
 
         </header>
         <Suspense fallback={<div className="flex flex-1 items-center justify-center p-8 text-muted-foreground">Loading…</div>}>

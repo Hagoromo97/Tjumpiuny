@@ -2,11 +2,12 @@
 
 import * as React from "react"
 import {
-  Calendar,
   Package,
   Search,
   X,
   Images,
+  Layers,
+  Users,
 } from "lucide-react"
 import { useEditMode } from "@/contexts/EditModeContext"
 import {
@@ -40,17 +41,12 @@ const data = {
   },
   navMain: [
     {
-      title: "Full Calendar",
+      title: "Schedule",
       url: "#",
-      icon: Calendar,
+      icon: Users,
       color: "#3B82F6",
       isActive: false,
       items: [
-        {
-          title: "Calendar",
-          url: "#",
-          page: "calendar-month",
-        },
         {
           title: "Rooster",
           url: "#",
@@ -185,7 +181,7 @@ export function AppSidebar({
             >
               <a href="#">
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <Calendar className="size-4" />
+                  <Layers className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">FCalendar</span>

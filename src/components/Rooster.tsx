@@ -475,10 +475,10 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
             )}
           </div>
         ) : (
-          <table className="border-collapse" style={{ width: "100%", tableLayout: "fixed" }}>
+          <table className="border-collapse" style={{ width: "max-content", minWidth: "100%", tableLayout: "fixed" }}>
             <colgroup>
               <col style={{ width: "164px" }} />
-              {colDates.map(d => <col key={toDateKey(d)} style={{ minWidth: "120px" }} />)}
+              {colDates.map(d => <col key={toDateKey(d)} style={{ width: "140px" }} />)}
             </colgroup>
             <thead>
               <tr>
@@ -526,13 +526,7 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
 
                     {/* ── Staff cell ── */}
                     <td className="sticky left-0 z-10 bg-card border-b border-r border-border p-3 align-top">
-                      <div className="flex items-start gap-2.5">
-                        <span
-                          className="w-8 h-8 rounded-xl shrink-0 flex items-center justify-center text-white text-[10px] font-black shadow-sm mt-0.5"
-                          style={{ backgroundColor: resource.color }}
-                        >
-                          {resource.name.split(" ").map(w => w[0]).slice(0, 2).join("")}
-                        </span>
+                      <div className="flex items-start">
                         <div className="min-w-0 flex-1">
                           <p className="text-[11px] font-bold text-foreground leading-tight truncate">{resource.name}</p>
                           {resource.role && (
@@ -748,11 +742,11 @@ function ShiftBlock({
     >
       <div className="h-[3px] w-full" style={{ backgroundColor: shift.color }} />
       <div className="px-2 py-1.5">
-        <div className="text-[10px] font-bold leading-tight truncate" style={{ color: shift.color }}>
+        <div className="text-[10px] font-bold leading-tight whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: shift.color }}>
           {shift.title}
         </div>
         {isEditMode && (
-          <div className="text-[9px] leading-tight text-muted-foreground mt-0.5 truncate">
+          <div className="text-[9px] leading-tight text-muted-foreground mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis">
             {startLabel} – {endLabel} · {duration}h
           </div>
         )}

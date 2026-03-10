@@ -205,10 +205,28 @@ export function RouteList() {
 
 
   // Pinned routes stored in localStorage
-  const [pinnedIds] = useState<Set<string>>(() => {
+  const [pinnedIds, setPinnedIds] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem("fcalendar_pinned_routes") || "[]").map((r: { id: string }) => r.id)) }
     catch { return new Set() }
   })
+
+  const togglePin = useCallback((route: Route) => {
+    setPinnedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(route.id)) {
+        next.delete(route.id)
+      } else {
+        next.add(route.id)
+      }
+      // Persist full route objects so HomePage can display them
+      const allPinned = routes
+        .filter(r => next.has(r.id))
+        .map(r => ({ id: r.id, name: r.name, code: r.code, shift: r.shift }))
+      localStorage.setItem("fcalendar_pinned_routes", JSON.stringify(allPinned))
+      window.dispatchEvent(new Event("fcalendar_pins_changed"))
+      return next
+    })
+  }, [routes])
 
   // Fetch routes from database
   const fetchRoutes = useCallback(async (preserveCurrentId?: string) => {
@@ -989,31 +1007,40 @@ export function RouteList() {
                 <div style={{ width: 340, flexShrink: 0, display: 'flex', flexDirection: 'column', height: 520 }}>
 
                   {/* ── Colored header band ── */}
-                  <div style={{ position: 'relative', height: 138, background: 'transparent', overflow: 'hidden', flexShrink: 0 }}>
+                  <div style={{ position: 'relative', background: 'transparent', overflow: 'hidden', flexShrink: 0, padding: '1.1rem 1.2rem 0.9rem' }}>
                     {/* Decorative circles behind */}
                     <div style={{ position: 'absolute', width: 180, height: 180, borderRadius: '50%', background: `${markerColor}12`, top: -60, right: -40 }} />
                     <div style={{ position: 'absolute', width: 100, height: 100, borderRadius: '50%', background: `${markerColor}09`, bottom: -30, left: 20 }} />
                     <div style={{ position: 'absolute', width: 60, height: 60, borderRadius: '50%', background: `${markerColor}10`, top: 10, right: 60 }} />
 
                     {/* Header content */}
-                    <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'flex-start', gap: '0.85rem', padding: '1.1rem 1.2rem 0' }}>
-                      {/* Truck avatar */}
-                      <div style={{ width: 50, height: 50, borderRadius: 14, background: `${markerColor}18`, backdropFilter: 'blur(8px)', border: `1.5px solid ${markerColor}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: `0 4px 12px ${markerColor}20` }}>
-                        <Truck style={{ width: 22, height: 22, color: markerColor }} />
+                    <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      {/* Route name */}
+                      <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'hsl(var(--foreground))', lineHeight: 1.25, wordBreak: 'break-word', textAlign: 'center' }}>Route {route.name}</h3>
+                      {/* Code + shift — tight under name */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                        <span style={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>{route.code}</span>
+                        <span style={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>{route.shift}</span>
                       </div>
-                      {/* Name + badges */}
-                      <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
-                        <h3 style={{ margin: '0 0 0.35rem', fontSize: '1.05rem', fontWeight: 800, color: 'hsl(var(--foreground))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{route.name}</h3>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: '0.72rem', fontWeight: 700, fontFamily: 'monospace', background: `${markerColor}18`, color: markerColor, padding: '2px 9px', borderRadius: 7, border: `1px solid ${markerColor}35` }}>{route.code}</span>
-                          <span style={{ fontSize: '0.72rem', fontWeight: 700, background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))', padding: '2px 9px', borderRadius: 7, border: '1px solid hsl(var(--border))' }}>{route.shift}</span>
-                          {pinnedIds.has(route.id) && <span style={{ fontSize: '0.65rem' }}>📌</span>}
+                      {/* Pin (left) + stops (right) — bottom row */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.5rem' }}>
+                        <button
+                          onClick={e => { e.stopPropagation(); togglePin(route) }}
+                          title={pinnedIds.has(route.id) ? "Unpin from Home" : "Pin to Home"}
+                          style={{
+                            background: 'none', border: 'none', padding: 0,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'pointer', fontSize: '1rem', lineHeight: 1,
+                            opacity: pinnedIds.has(route.id) ? 1 : 0.4,
+                            transition: 'opacity 0.15s',
+                          }}
+                        >
+                          {pinnedIds.has(route.id) ? '📌' : '📍'}
+                        </button>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
+                          <span style={{ fontSize: '1rem', fontWeight: 900, color: markerColor, lineHeight: 1 }}>{route.deliveryPoints.length}</span>
+                          <span style={{ fontSize: '0.55rem', fontWeight: 700, color: markerColor, opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>stops</span>
                         </div>
-                      </div>
-                      {/* Stops count pill */}
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: `${markerColor}15`, border: `1.5px solid ${markerColor}35`, borderRadius: 12, padding: '0.3rem 0.65rem', flexShrink: 0, minWidth: 44 }}>
-                        <span style={{ fontSize: '1.2rem', fontWeight: 900, color: markerColor, lineHeight: 1 }}>{route.deliveryPoints.length}</span>
-                        <span style={{ fontSize: '0.5rem', fontWeight: 700, color: markerColor, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.08em' }}>stops</span>
                       </div>
                     </div>
 
@@ -1030,7 +1057,7 @@ export function RouteList() {
                         return (
                           <div key={pt.code} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.81rem', background: 'hsl(var(--muted)/0.5)', borderRadius: 10, padding: '0.38rem 0.6rem', border: '1px solid hsl(var(--border)/0.6)' }}>
                             <span style={{ width: 20, height: 20, borderRadius: 6, background: `linear-gradient(135deg, ${markerColor}dd, ${markerColor}88)`, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.58rem', fontWeight: 800, flexShrink: 0, boxShadow: `0 2px 6px ${markerColor}44` }}>{i + 1}</span>
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, color: 'hsl(var(--foreground))', fontWeight: 600 }}>{pt.name}</span>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, color: 'hsl(var(--foreground))', fontWeight: 600, minWidth: 0 }}>{pt.name}</span>
                             <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.6rem', fontWeight: 600, color: markerColor, background: `${markerColor}18`, padding: '1px 7px', borderRadius: '999px', border: `1px solid ${markerColor}44`, flexShrink: 0 }}>
                               {pt.delivery}
                             </span>
@@ -1077,8 +1104,8 @@ export function RouteList() {
                             return (
                               <Popover key={type} open={isOpen} onOpenChange={open => setBadgePopover(open ? popKey : null)}>
                                 <PopoverTrigger asChild>
-                                  <button style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: isOpen ? `${markerColor}28` : `${markerColor}18`, color: markerColor, fontSize: '0.72rem', fontWeight: 600, padding: '2px 10px', borderRadius: '999px', border: `1px solid ${markerColor}44`, cursor: 'pointer', transition: 'background 0.15s' }}>
-                                    {type} · {pts.length}
+                                  <button style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', fontWeight: 600, padding: '2px 4px', borderRadius: '4px', border: 'none', color: markerColor, background: 'none', cursor: 'pointer', opacity: isOpen ? 0.7 : 1, transition: 'opacity 0.15s' }}>
+                                    {type} <span style={{ opacity: 0.5, fontWeight: 400 }}>{pts.length}</span>
                                   </button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-56 p-0" align="center" side="top">
