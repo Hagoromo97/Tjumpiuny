@@ -43,6 +43,7 @@ const data = {
       title: "Full Calendar",
       url: "#",
       icon: Calendar,
+      color: "#3B82F6",
       isActive: false,
       items: [
         {
@@ -61,6 +62,7 @@ const data = {
       title: "Vending Machine",
       url: "#",
       icon: Package,
+      color: "#10B981",
       isActive: false,
       items: [
         {
@@ -84,6 +86,7 @@ const data = {
       title: "Gallery",
       url: "#",
       icon: Images,
+      color: "#A855F7",
       isActive: false,
       items: [
         {
@@ -101,10 +104,7 @@ const data = {
   ],
   settingsItems: [
     { title: "Profile",     page: "settings-profile" },
-    { title: "Notifications", page: "settings-notifications" },
-    { title: "Appearance",  page: "settings-appearance" },
     { title: "Font",        page: "settings-appearance-font" },
-    { title: "Display",     page: "settings-appearance-display" },
     { title: "Route Colours", page: "settings-route-colors" },
     { title: "Map Settings",page: "settings-map" },
     { title: "Security",    page: "settings-security" },
@@ -112,8 +112,8 @@ const data = {
 }
 
 const SETTINGS_PAGES = new Set([
-  "settings-profile","settings-notifications","settings-appearance",
-  "settings-appearance-font","settings-appearance-display","settings-route-colors","settings-map","settings-security",
+  "settings-profile",
+  "settings-appearance-font","settings-route-colors","settings-map","settings-security",
 ])
 
 
@@ -236,7 +236,7 @@ export function AppSidebar({
         />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={data.user} onNavigate={onNavigate} />
       </SidebarFooter>
     </Sidebar>
 

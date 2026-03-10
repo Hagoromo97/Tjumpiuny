@@ -30,6 +30,7 @@ export function NavMain({
     title: string
     url: string
     icon: LucideIcon
+    color?: string
     page?: string
     isActive?: boolean
     items?: {
@@ -98,7 +99,7 @@ export function NavMain({
                       handleToggle(item.title, hasChildren, item.page)
                     }}
                   >
-                    <item.icon />
+                    <item.icon style={item.color ? { color: item.color } : undefined} />
                     <span>{item.title}</span>
                   </a>
                 </SidebarMenuButton>

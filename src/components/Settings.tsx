@@ -2,35 +2,27 @@ import { useState, useRef } from "react"
 import type { ReactNode } from "react"
 import {
   User, Bell, Lock, Globe, Mail, Phone, Save, Shield,
-  Eye, EyeOff, Moon, Sun, Check, Type, ZoomIn,
-  Brush, AlertTriangle, Languages, Navigation, Palette, Plus, Trash2,
+  Eye, EyeOff, Check, Type,
+  AlertTriangle, Navigation, Palette, Plus, Trash2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { useTheme, FONT_OPTIONS, type AppFont, type AppZoom, type TextSize } from "@/hooks/use-theme"
+import { useTheme, FONT_OPTIONS, type AppFont } from "@/hooks/use-theme"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type SectionId =
   | "profile"
   | "notifications"
-  | "appearance-theme"
   | "appearance-font"
-  | "appearance-display"
-  | "appearance-language"
   | "map-defaultview"
   | "route-colors"
   | "security"
   | "danger"
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const MODE_OPTIONS = [
-  { id: "light" as const, label: "Light", icon: Sun },
-  { id: "dark" as const,  label: "Dark",  icon: Moon },
-]
-
 const LS_DEFAULT_VIEW = "mapMarkerDefaultView"
 const MAP_FALLBACK = { lat: "3.0695500", lng: "101.5469179", zoom: "12" }
 
@@ -58,7 +50,7 @@ function SectionHeader({ icon, title, description }: { icon: ReactNode; title: s
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 export function Settings({ section = "profile" }: { section?: SectionId }) {
-  const { mode, setMode, appFont, setAppFont, appZoom, setAppZoom, textSize, setTextSize } = useTheme()
+  const { appFont, setAppFont } = useTheme()
   const active = section
 
   // Profile state
@@ -66,10 +58,6 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
 
   // Notifications state
   const [notifications, setNotifications] = useState({ email: true, push: true, sms: false, weeklyReport: true })
-
-  // Appearance language/tz state
-  const [language, setLanguage] = useState("en")
-  const [timezone, setTimezone] = useState("Asia/Kuala_Lumpur")
 
   // Security state
   const [security, setSecurity] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" })
@@ -95,14 +83,6 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
     window.dispatchEvent(new Event('fcalendar_route_colors_changed'))
     // force re-render to update dirty flag
     setRouteColors(c => [...c])
-  }
-
-  // Card columns
-  const [cardCols, setCardCols] = useState(() => localStorage.getItem('fcalendar_card_cols') || '2')
-  const updateCardCols = (v: string) => {
-    localStorage.setItem('fcalendar_card_cols', v)
-    setCardCols(v)
-    window.dispatchEvent(new Event('fcalendar_card_cols_changed'))
   }
 
   const handleSaveMap = () => {
@@ -202,54 +182,6 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
         )
       }
 
-      // ── Appearance: Theme & Mode ──────────────────────────────────────────
-      case "appearance-theme":
-        return (
-          <div>
-            <SectionHeader icon={<Brush className="size-4" />} title="Display Mode" description="Switch between light and dark appearance." />
-            <div className="space-y-4">
-              <div className="flex items-center rounded-xl border border-border bg-muted/40 p-1 gap-1">
-                {MODE_OPTIONS.map(({ id, label, icon: Icon }) => {
-                  const isActive = mode === id
-                  return (
-                    <button
-                      key={id}
-                      onClick={() => setMode(id)}
-                      className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-3 px-3 text-sm font-semibold transition-all duration-200 ${
-                        isActive
-                          ? "bg-background text-foreground shadow-sm ring-1 ring-border"
-                          : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                      }`}
-                    >
-                      <Icon className="size-4 shrink-0" />
-                      <span>{label}</span>
-                    </button>
-                  )
-                })}
-              </div>
-
-              {/* Preview strip */}
-              <div className="rounded-xl border border-border overflow-hidden">
-                <div className="h-20 bg-background flex items-center justify-center gap-3 px-4">
-                  <div className="flex-1 space-y-1.5">
-                    <div className="h-2.5 w-3/4 rounded-full bg-foreground/15" />
-                    <div className="h-2 w-1/2 rounded-full bg-foreground/10" />
-                  </div>
-                  <div className="h-8 w-16 rounded-lg bg-primary/90 flex items-center justify-center">
-                    <div className="h-1.5 w-8 rounded-full bg-primary-foreground/70" />
-                  </div>
-                </div>
-                <div className="px-3 py-2 bg-muted/60 flex items-center gap-2">
-                  {MODE_OPTIONS.find(m => m.id === mode) && (() => {
-                    const { icon: Icon, label } = MODE_OPTIONS.find(m => m.id === mode)!
-                    return (<><Icon className="size-3 text-muted-foreground" /><span className="text-xs text-muted-foreground">{label} mode active</span></>)
-                  })()}
-                </div>
-              </div>
-            </div>
-          </div>
-        )
-
       // ── Appearance: Font ──────────────────────────────────────────────────
       case "appearance-font":
         return (
@@ -276,162 +208,6 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
                 <p className="text-base" style={{ fontFamily: FONT_OPTIONS.find(f => f.id === appFont)?.family }}>
                   This is a text preview using <strong>{FONT_OPTIONS.find(f => f.id === appFont)?.label}</strong>. The quick brown fox jumps over the lazy dog.
                 </p>
-              </div>
-            </div>
-          </div>
-        )
-
-      case "appearance-display":
-        return (
-          <div>
-            <SectionHeader icon={<ZoomIn className="size-4" />} title="Display" description="UI scale, text size and card layout." />
-            <div className="space-y-8">
-
-              {/* App Zoom */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <label className="text-sm font-medium">App Zoom</label>
-                    <p className="text-xs text-muted-foreground mt-0.5">Overall application display scale.</p>
-                  </div>
-                  <span className="text-sm font-mono font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-md min-w-[3.5rem] text-center">{appZoom}%</span>
-                </div>
-                {/* Slider */}
-                <input
-                  type="range" min="80" max="120" step="5"
-                  value={appZoom}
-                  onChange={e => setAppZoom(e.target.value as AppZoom)}
-                  className="w-full accent-primary h-2 rounded-full cursor-pointer"
-                />
-                <div className="flex justify-between text-[10px] text-muted-foreground/60">
-                  <span>80%</span><span>90%</span><span>100%</span><span>110%</span><span>120%</span>
-                </div>
-                {/* Quick presets */}
-                <div className="flex gap-1.5 flex-wrap">
-                  {(["80","90","95","100","105","110","120"] as AppZoom[]).map(z => (
-                    <button key={z} onClick={() => setAppZoom(z)}
-                      className={`flex-1 min-w-[3rem] py-1.5 rounded-md border text-xs font-semibold transition-all ${appZoom === z ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"}`}
-                    >{z}%</button>
-                  ))}
-                </div>
-                {/* Zoom indicator */}
-                <div className="p-3 rounded-lg bg-muted/40 border flex items-center gap-3">
-                  <div className="relative flex items-end gap-1 h-8">
-                    {(["80","90","100","110","120"] as AppZoom[]).map(z => (
-                      <div key={z}
-                        className={`rounded-sm transition-all duration-200 ${appZoom === z ? 'bg-primary' : 'bg-muted-foreground/20'}`}
-                        style={{ width: 8, height: `${(parseInt(z) - 70) / 50 * 100}%`, minHeight: 4 }}
-                      />
-                    ))}
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold">{parseInt(appZoom) < 100 ? 'Zoomed out' : parseInt(appZoom) > 100 ? 'Zoomed in' : 'Default size'}</p>
-                    <p className="text-[10px] text-muted-foreground">Changes apply instantly to the whole app</p>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Text Size */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <label className="text-sm font-medium">Text Size</label>
-                    <p className="text-xs text-muted-foreground mt-0.5">Affects all text in the application.</p>
-                  </div>
-                  <span className="text-sm font-mono font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-md">{textSize}px</span>
-                </div>
-                <div className="flex gap-1.5 flex-wrap">
-                  {([
-                    { v: "13", label: "XS" }, { v: "14", label: "S" }, { v: "15", label: "M−" },
-                    { v: "16", label: "M" },  { v: "17", label: "M+" }, { v: "18", label: "L" }, { v: "20", label: "XL" },
-                  ] as { v: TextSize; label: string }[]).map(({ v, label }) => (
-                    <button key={v} onClick={() => setTextSize(v)}
-                      className={`flex-1 min-w-[3rem] flex flex-col items-center py-2 px-1 rounded-md border transition-all ${textSize === v ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"}`}
-                    >
-                      <span className="font-semibold text-xs">{label}</span>
-                      <span className="text-[10px] opacity-70">{v}px</span>
-                    </button>
-                  ))}
-                </div>
-                <div className="p-4 rounded-lg bg-muted/40 border">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Size Preview</p>
-                  <p style={{ fontSize: `${textSize}px` }}>Current text size ({textSize}px) — The quick brown fox.</p>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Card Columns */}
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium">Route Card Columns</label>
-                  <p className="text-xs text-muted-foreground mt-0.5">Number of cards per row on Route List page.</p>
-                </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {[
-                    { v: '2', label: '2', desc: 'Large cards' },
-                    { v: '3', label: '3', desc: 'Medium cards' },
-                    { v: '4', label: '4', desc: 'Small cards' },
-                    { v: 'auto', label: 'Auto', desc: 'Responsive' },
-                  ].map(o => (
-                    <button key={o.v} onClick={() => updateCardCols(o.v)}
-                      className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border transition-all ${
-                        cardCols === o.v ? 'bg-primary text-primary-foreground border-primary shadow-md' : 'border-border text-muted-foreground hover:border-primary/40 hover:bg-muted/50'
-                      }`}
-                    >
-                      <div className={`grid gap-0.5 w-full ${
-                        o.v === '2' ? 'grid-cols-2' : o.v === '3' ? 'grid-cols-3' : 'grid-cols-4'
-                      }`}>
-                        {Array.from({ length: o.v === 'auto' ? 4 : parseInt(o.v) }).map((_, i) => (
-                          <div key={i} className={`h-2.5 rounded-sm ${
-                            cardCols === o.v ? 'bg-primary-foreground/40' : 'bg-muted-foreground/20'
-                          }`} />
-                        ))}
-                      </div>
-                      <span className="text-xs font-bold">{o.label}</span>
-                      <span className="text-[9px] opacity-70 text-center leading-tight">{o.desc}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-          </div>
-        )
-
-      // ── Appearance: Language ──────────────────────────────────────────────
-      case "appearance-language":
-        return (
-          <div>
-            <SectionHeader icon={<Languages className="size-4" />} title="Language & Timezone" description="Display language and timezone settings." />
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium flex items-center gap-2"><Globe className="size-4" />Language</label>
-                  <select value={language} onChange={e => setLanguage(e.target.value)}
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="en">English</option>
-                    <option value="ms">Bahasa Melayu</option>
-                    <option value="zh">中文</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Timezone</label>
-                  <select value={timezone} onChange={e => setTimezone(e.target.value)}
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="Asia/Kuala_Lumpur">Kuala Lumpur (GMT+8)</option>
-                    <option value="Asia/Singapore">Singapore (GMT+8)</option>
-                    <option value="Asia/Bangkok">Bangkok (GMT+7)</option>
-                    <option value="Asia/Jakarta">Jakarta (GMT+7)</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <Button onClick={() => alert("Appearance settings saved!")}><Save className="size-4 mr-2" />Save</Button>
               </div>
             </div>
           </div>

@@ -867,7 +867,7 @@ export function RouteList() {
         {/* Page header */}
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-fluid-xl page-header font-bold text-gray-900 dark:text-white">Route List</h1>
+            <h1 className="text-fluid-xl page-header font-bold text-foreground">Route List</h1>
             <p className="text-fluid-sm page-subheader text-muted-foreground mt-2">
               {filteredRoutes.length} route{filteredRoutes.length !== 1 ? 's' : ''}
               {(filterRegion !== 'all' || filterShift !== 'all') && <span className="ml-1 text-primary font-medium">· filtered</span>}
@@ -973,15 +973,15 @@ export function RouteList() {
         </div>
 
         {/* ── Card grid ── */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', justifyContent: 'center' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
         {filteredRoutes.map((route, routeIndex) => {
           const markerColor = route.color || routeColorPalette[routeIndex % routeColorPalette.length]
           const cardPanel = getCardPanel(route.id)
           const ep = editPanelState[route.id] ?? { name: route.name, code: route.code, shift: route.shift, color: route.color || markerColor, labels: route.labels ?? ['Daily', 'Weekday', 'Alt 1', 'Alt 2'] }
           return (
-          <div key={route.id}>
+          <div key={route.id} style={{ display: 'flex', justifyContent: 'center' }}>
             {/* ── Route Card ── */}
-            <div style={{ width: 340, height: 520, borderRadius: 22, overflow: 'hidden', position: 'relative', background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}>
+            <div style={{ width: 340, height: 520, borderRadius: 22, overflow: 'hidden', position: 'relative', background: 'hsl(var(--card))', border: `1.5px solid ${markerColor}55`, boxShadow: `0 0 0 1px ${markerColor}18` }}>
               {/* Sliding wrapper */}
               <div style={{ position: 'relative', zIndex: 1, display: 'flex', width: 1020, height: '100%', transform: cardPanel.edit ? 'translateX(-680px)' : cardPanel.info ? 'translateX(-340px)' : 'translateX(0)', transition: 'transform 0.38s cubic-bezier(0.4,0,0.2,1)' }}>
 
@@ -1090,19 +1090,7 @@ export function RouteList() {
                                       <span className="text-xs font-bold" style={{ color: markerColor }}>{type}</span>
                                       <span className="text-[10px] text-muted-foreground">({pts.length})</span>
                                     </div>
-                                    <button
-                                      className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg transition-colors hover:opacity-80"
-                                      style={{ background: `${markerColor}18`, color: markerColor }}
-                                      onClick={() => {
-                                        setBadgePopover(null)
-                                        setCurrentRouteId(route.id)
-                                        setNewPoint(prev => ({ ...prev, delivery: type, code: '', name: '' }))
-                                        setCodeError('')
-                                        setAddPointDialogOpen(true)
-                                      }}
-                                    >
-                                      <Plus className="size-3" /> Add
-                                    </button>
+
                                   </div>
                                   {/* Point list */}
                                   <div className="divide-y divide-border/40 max-h-44 overflow-y-auto">
@@ -1143,18 +1131,7 @@ export function RouteList() {
                               </Popover>
                             )
                           })}
-                          {/* Add new — always visible */}
-                          <button
-                            onClick={() => {
-                              setCurrentRouteId(route.id)
-                              setNewPoint(prev => ({ ...prev, code: '', name: '' }))
-                              setCodeError('')
-                              setAddPointDialogOpen(true)
-                            }}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: `${markerColor}18`, color: markerColor, fontSize: '0.72rem', fontWeight: 600, padding: '2px 10px', borderRadius: '999px', border: `1px dashed ${markerColor}60`, cursor: 'pointer', transition: 'background 0.15s' }}
-                          >
-                            <Plus style={{ width: 10, height: 10 }} /> New
-                          </button>
+
                         </div>
                       )
                     })()}
@@ -2057,7 +2034,7 @@ export function RouteList() {
         {/* Add New Route Card */}
         {isEditMode && (
         <>
-          <div
+          <div style={{ display: 'flex', justifyContent: 'center' }}><div
             onClick={() => setAddRouteDialogOpen(true)}
             onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.background = '#6366f108' }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = 'hsl(var(--border))'; e.currentTarget.style.background = 'transparent' }}
@@ -2070,7 +2047,7 @@ export function RouteList() {
               <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'hsl(var(--muted-foreground))' }}>Add New Route</div>
               <div style={{ fontSize: '0.72rem', fontWeight: 500, color: 'hsl(var(--muted-foreground))', marginTop: 4, opacity: 0.7 }}>Click to create a route</div>
             </div>
-          </div>
+          </div></div>{/* end Add New Route wrapper */}
           <Dialog open={addRouteDialogOpen} onOpenChange={setAddRouteDialogOpen}>
             <DialogContent>
               <DialogHeader>

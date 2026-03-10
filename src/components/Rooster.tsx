@@ -7,7 +7,6 @@ import {
   Trash2,
   Users,
   Clock,
-  CalendarDays,
   Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -216,11 +215,13 @@ function makeSeedShifts(resources: Resource[]): Shift[] {
 
 type ViewMode = "week" | "day"
 
-export function Rooster() {
+export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMode }) {
   const today = new Date()
   const { isEditMode } = useEditMode()
 
-  const [viewMode, setViewMode] = useState<ViewMode>("week")
+  const [viewMode, setViewMode] = useState<ViewMode>(viewModeProp)
+
+  useEffect(() => { setViewMode(viewModeProp) }, [viewModeProp])
   const [currentDate, setCurrentDate] = useState(new Date())
   const [resources, setResources] = useState<Resource[]>([])
   const [shifts, setShifts] = useState<Shift[]>([])
@@ -420,71 +421,52 @@ export function Rooster() {
     <div className="flex flex-col flex-1 min-h-0">
 
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3 px-6 py-4 border-b border-border/60 shrink-0 bg-background/80 backdrop-blur-sm">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-border shrink-0 bg-card">
         {/* Nav */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <button
             onClick={() => navigate(-1)}
-            className="h-9 w-9 flex items-center justify-center rounded-lg border border-border/60 bg-muted/40 hover:bg-muted/70 transition-colors"
+            className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
           >
             <ChevronLeft className="size-4" />
           </button>
           <button
             onClick={goToday}
-            className="h-9 px-4 text-xs font-semibold rounded-lg border border-border/60 bg-muted/40 hover:bg-muted/70 transition-colors"
+            className="h-8 px-3 text-xs font-semibold rounded-lg border border-border bg-card hover:bg-muted transition-colors text-foreground"
           >
             Today
           </button>
           <button
             onClick={() => navigate(1)}
-            className="h-9 w-9 flex items-center justify-center rounded-lg border border-border/60 bg-muted/40 hover:bg-muted/70 transition-colors"
+            className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
           >
             <ChevronRight className="size-4" />
           </button>
         </div>
 
         {/* Label */}
-        <h2 className="text-base font-bold flex-1 text-center sm:text-left">
+        <h2 className="text-sm font-bold flex-1 px-1">
           {headerLabel}
         </h2>
 
-        {/* View toggles */}
-        <div className="flex items-center gap-1 rounded-lg border border-border/60 overflow-hidden bg-muted/30 p-1">
-          {(["week", "day"] as ViewMode[]).map(v => (
+        {/* Add buttons — edit mode only */}
+        {isEditMode && (
+          <div className="flex items-center gap-2">
             <button
-              key={v}
-              onClick={() => setViewMode(v)}
-              className={`h-8 px-4 text-xs font-semibold rounded-md capitalize transition-all ${
-                viewMode === v
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              onClick={openAddResource}
+              className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border bg-card hover:bg-muted text-xs font-semibold transition-colors text-foreground"
             >
-              {v === "week" ? <><CalendarDays className="size-3 inline mr-1" />Week</> : <><Clock className="size-3 inline mr-1" />Day</>}
+              <Users className="size-3.5" />
+              Add Staff
             </button>
-          ))}
-        </div>
-
-        {/* Add shift — edit mode only */}
-        {isEditMode && (
-        <button
-          onClick={() => openAddShift()}
-          className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors shadow-sm"
-        >
-          <Plus className="size-4" />
-          Add Shift
-        </button>
-        )}
-
-        {/* Add resource — edit mode only */}
-        {isEditMode && (
-        <button
-          onClick={openAddResource}
-          className="flex items-center gap-2 h-9 px-4 rounded-lg border border-border bg-muted/40 hover:bg-muted/70 text-xs font-semibold transition-colors"
-        >
-          <Users className="size-4" />
-          Add Staff
-        </button>
+            <button
+              onClick={() => openAddShift()}
+              className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors shadow-sm"
+            >
+              <Plus className="size-3.5" />
+              Add Shift
+            </button>
+          </div>
         )}
       </div>
 
@@ -513,27 +495,30 @@ export function Rooster() {
           >
             {/* ── Frozen header: Staff column ─────────────────────────────── */}
             <div
-              className="sticky top-0 left-0 z-30 bg-background border-b border-r border-border/70 px-5 py-4 flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap shadow-[2px_0_6px_-2px_rgba(0,0,0,0.12)]"
+              className="sticky top-0 left-0 z-30 bg-card border-b border-r border-border px-4 py-3 flex items-center gap-2 text-[11px] font-bold text-muted-foreground uppercase tracking-widest whitespace-nowrap shadow-[2px_0_8px_-2px_rgba(0,0,0,0.08)]"
             >
-              <Users className="size-4 shrink-0" />
+              <Users className="size-3.5 shrink-0" />
               Staff
             </div>
 
             {/* ── Day column headers ───────────────────────────────────────── */}
             {colDates.map(date => {
               const isToday = isSameDay(date, today)
+              const isWeekend = date.getDay() === 0 || date.getDay() === 6
               return (
                 <div
                   key={toDateKey(date)}
-                  className={`sticky top-0 z-20 bg-background border-b border-border/70 text-center py-4 px-3 transition-colors ${
-                    isToday ? "text-primary" : "text-muted-foreground"
+                  className={`sticky top-0 z-20 bg-card border-b border-r border-border text-center py-3 px-2 ${
+                    isToday ? "bg-primary/5" : isWeekend ? "bg-muted/30" : ""
                   }`}
                 >
-                  <div className={`text-[11px] font-semibold uppercase tracking-wide ${isToday ? "text-primary" : ""}`}>
+                  <div className={`text-[10px] font-bold uppercase tracking-widest mb-1.5 ${
+                    isToday ? "text-primary" : isWeekend ? "text-muted-foreground/60" : "text-muted-foreground"
+                  }`}>
                     {DAYS_SHORT[date.getDay()]}
                   </div>
-                  <div className={`mt-1 inline-flex items-center justify-center w-7 h-7 rounded-full text-sm font-bold ${
-                    isToday ? "bg-primary text-primary-foreground" : ""
+                  <div className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-sm font-bold transition-colors ${
+                    isToday ? "bg-primary text-primary-foreground shadow-sm" : isWeekend ? "text-muted-foreground/60" : "text-foreground"
                   }`}>
                     {date.getDate()}
                   </div>
@@ -550,33 +535,33 @@ export function Rooster() {
 
                   {/* Frozen name cell */}
                   <div
-                    className={`sticky left-0 z-10 bg-background border-b border-r border-border/70 px-4 py-4 flex flex-col justify-center gap-1.5 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.10)]`}
-                    style={{ minHeight: "96px" }}
+                    className="sticky left-0 z-10 bg-card border-b border-r border-border px-3 py-3 flex flex-col justify-center gap-2 shadow-[2px_0_8px_-2px_rgba(0,0,0,0.08)]"
+                    style={{ minHeight: "88px" }}
                   >
                     <div className="flex items-center gap-2.5">
                       <span
-                        className="w-3 h-3 rounded-full shrink-0"
+                        className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-white text-[11px] font-bold shadow-sm"
                         style={{ backgroundColor: resource.color }}
-                      />
-                      <span className="text-sm font-semibold text-foreground leading-tight">
-                        {resource.name}
+                      >
+                        {resource.name.split(" ").map(w => w[0]).slice(0, 2).join("")}
                       </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground ml-[20px] leading-tight">
-                      {resource.role}
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-foreground leading-tight truncate">{resource.name}</p>
+                        <p className="text-[10px] text-muted-foreground leading-tight mt-0.5 truncate">{resource.role}</p>
+                      </div>
                     </div>
                     {isEditMode && (
-                      <div className="flex items-center gap-1.5 mt-2 ml-[20px]">
+                      <div className="flex items-center gap-1">
                         <button
                           onClick={e => { e.stopPropagation(); openEditResource(resource) }}
-                          className="h-6 w-6 flex items-center justify-center rounded bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors border border-border/40"
+                          className="h-6 px-2 flex items-center gap-1 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors text-[10px] font-medium"
                           title="Edit staff"
                         >
-                          <Pencil className="size-3" />
+                          <Pencil className="size-2.5" /> Edit
                         </button>
                         <button
                           onClick={e => { e.stopPropagation(); deleteResource(resource.id) }}
-                          className="h-6 w-6 flex items-center justify-center rounded bg-muted/60 hover:bg-destructive/15 text-muted-foreground hover:text-destructive transition-colors border border-border/40"
+                          className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                           title="Delete staff"
                         >
                           <Trash2 className="size-3" />
@@ -590,13 +575,16 @@ export function Rooster() {
                     const dateKey = toDateKey(date)
                     const dayShifts = rowShifts.filter(s => s.date === dateKey)
                     const isToday = isSameDay(date, today)
+                    const isWeekend = date.getDay() === 0 || date.getDay() === 6
                     return (
                       <div
                         key={dateKey}
-                        className={`${rowBg} border-b border-r border-border/40 relative px-3 py-3 flex flex-col gap-2 transition-colors ${
-                          isEditMode ? "cursor-pointer hover:bg-muted/20" : ""
-                        } ${isToday ? "bg-primary/[0.03]" : ""}`}
-                        style={{ minHeight: "96px" }}
+                        className={`border-b border-r border-border relative px-2 py-2 flex flex-col gap-1.5 transition-colors ${
+                          isToday ? "bg-primary/[0.04]" : isWeekend ? "bg-muted/20" : rowBg
+                        } ${
+                          isEditMode ? "cursor-pointer hover:bg-muted/40" : ""
+                        }`}
+                        style={{ minHeight: "88px" }}
                         onClick={() => { if (isEditMode) openAddShift(resource.id, dateKey) }}
                       >
                         {dayShifts.map(shift => (
@@ -609,7 +597,7 @@ export function Rooster() {
                         ))}
                         {dayShifts.length === 0 && isEditMode && (
                           <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                            <Plus className="size-3.5 text-muted-foreground/30" />
+                            <Plus className="size-4 text-muted-foreground/20" />
                           </div>
                         )}
                       </div>
@@ -836,13 +824,19 @@ function ShiftBlock({
 
   return (
     <div
-      className={`pl-3 py-1.5 rounded-md select-none transition-all ${isEditMode ? "cursor-pointer hover:opacity-70 active:scale-[0.98]" : "cursor-default"}`}
-      style={{ borderLeft: `3px solid ${shift.color}`, backgroundColor: `${shift.color}08` }}
+      className={`rounded-lg select-none transition-all overflow-hidden ${
+        isEditMode ? "cursor-pointer hover:brightness-95 active:scale-[0.98]" : "cursor-default"
+      }`}
+      style={{ backgroundColor: `${shift.color}15`, border: `1px solid ${shift.color}35` }}
       onClick={e => { e.stopPropagation(); if (isEditMode) onEdit() }}
       title={`${shift.title}: ${startLabel} – ${endLabel} (${duration}h)`}
     >
-      <div className="text-xs font-semibold leading-tight truncate text-foreground">{shift.title}</div>
-      <div className="text-[11px] leading-tight text-muted-foreground mt-1 truncate">{startLabel} – {endLabel}</div>
+      <div className="h-0.5 w-full" style={{ backgroundColor: shift.color }} />
+      <div className="px-2.5 py-1.5">
+        <div className="text-[11px] font-bold leading-tight truncate" style={{ color: shift.color }}>{shift.title}</div>
+        <div className="text-[10px] leading-tight text-muted-foreground mt-0.5 truncate">{startLabel} – {endLabel}</div>
+        <div className="inline-flex items-center mt-1 px-1.5 py-0.5 rounded text-[9px] font-semibold" style={{ backgroundColor: `${shift.color}20`, color: shift.color }}>{duration}h</div>
+      </div>
     </div>
   )
 }

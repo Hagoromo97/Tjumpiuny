@@ -64,7 +64,7 @@ export function NavProjects({
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Projects</SidebarGroupLabel>
+      <SidebarGroupLabel>Settings</SidebarGroupLabel>
       <SidebarMenu>
         {/* Settings collapsible */}
         {showSettings && (
@@ -96,8 +96,8 @@ export function NavProjects({
                     <SidebarMenuSubItem>
                       <div className="flex items-center gap-2 px-2 py-1.5 w-full rounded-md hover:bg-sidebar-accent/50 transition-colors cursor-pointer" onClick={toggleMode}>
                         {mode === "dark"
-                          ? <Moon className="size-3.5 shrink-0 text-sidebar-foreground/70" />
-                          : <Sun  className="size-3.5 shrink-0 text-sidebar-foreground/70" />}
+                          ? <Moon className="size-3.5 shrink-0" style={{ color: "#EAB308" }} />
+                          : <Sun  className="size-3.5 shrink-0" style={{ color: "#F97316" }} />}
                         <span className="flex-1 text-sm text-sidebar-foreground/90">Dark Mode</span>
                         <span onClick={e => e.stopPropagation()}>
                           <Switch
@@ -119,7 +119,7 @@ export function NavProjects({
                         }`}
                         onClick={onEditModeToggle}
                       >
-                        <Pencil className={`size-3.5 shrink-0 ${isEditMode ? "text-primary" : "text-sidebar-foreground/70"}`} />
+                        <Pencil className={`size-3.5 shrink-0 ${isEditMode ? "text-primary" : ""}`} style={!isEditMode ? { color: "#6366F1" } : undefined} />
                         <span className={`flex-1 text-sm ${isEditMode ? "text-primary font-medium" : "text-sidebar-foreground/90"}`}>Edit Mode</span>
                         <span onClick={e => e.stopPropagation()}>
                           <Switch
@@ -130,6 +130,11 @@ export function NavProjects({
                         </span>
                       </div>
                     </SidebarMenuSubItem>
+                  )}
+
+                  {/* ── Divider ── */}
+                  {showEditMode && filteredSettings.length > 0 && (
+                    <div className="mx-2 my-1 h-px bg-border/50" />
                   )}
 
                   {/* ── Nav settings items ── */}
