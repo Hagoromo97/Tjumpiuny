@@ -253,7 +253,7 @@ function MonthView({ events, isEditMode, onAdd, onEdit }: ViewProps) {
     <div className="flex flex-col gap-3 p-3 lg:p-5" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
       <div className="bg-card border border-border rounded-lg shadow overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
-          <h2 className="text-base font-semibold">{MONTHS[month]} {year}</h2>
+          <h2 className="text-lg font-semibold">{MONTHS[month]} {year}</h2>
           <div className="flex items-center gap-1">
             <Button variant="outline" size="sm" className="h-8"
               onClick={() => { const t = new Date(); setCurrentDate(t); setSelectedDate(t) }}>
@@ -657,7 +657,7 @@ function ListView({ events, isEditMode, onAdd, onEdit }: ViewProps) {
       <div className="bg-card border border-border rounded-lg shadow overflow-hidden flex flex-col flex-1 min-h-0">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-border bg-muted/30 shrink-0">
-          <h2 className="text-base font-semibold truncate">{windowLabel}</h2>
+          <h2 className="text-lg font-semibold truncate">{windowLabel}</h2>
           <div className="flex items-center gap-1">
             <Button variant="outline" size="sm" className="h-8" onClick={() => setCurrentDate(new Date())}>Today</Button>
             <Button variant="ghost" size="icon" className="h-8 w-8"

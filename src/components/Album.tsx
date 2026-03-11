@@ -172,7 +172,7 @@ export function Album() {
       {/* Header */}
       <div className="px-4 pt-5 pb-3 max-w-5xl mx-auto w-full flex items-start justify-between gap-2">
         <div>
-          <h1 className="text-xl font-bold">Album</h1>
+          <h1 className="text-fluid-xl page-header font-bold">Album</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {allImages.length} images across {pages.length} pages
           </p>

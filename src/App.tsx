@@ -126,7 +126,7 @@ function HomePage({ onNavigate }: { onNavigate: (page: string) => void }) {
       {/* ── Pinned Routes ─────────────────────────────────────── */}
       {pinnedRoutes.length > 0 && (
         <div>
-          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5 px-0.5">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5 px-0.5">
             Pinned Routes
           </p>
           <div className="rounded-2xl overflow-hidden border border-border/60 shadow-sm bg-card divide-y divide-border/40">
@@ -163,7 +163,7 @@ function HomePage({ onNavigate }: { onNavigate: (page: string) => void }) {
 
       {/* ── Quick Actions ─────────────────────────────────────── */}
       <div>
-        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5 px-0.5">Quick Access</p>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5 px-0.5">Quick Access</p>
         <div className="grid grid-cols-2 gap-3">
           <QuickActionCard icon={ClipboardList} label="Route List" description="Manage vending routes" page="route-list" gradient="bg-gradient-to-br from-violet-500 to-violet-600" onNavigate={onNavigate} />
           <QuickActionCard icon={MapPin}        label="Location"   description="Delivery records"       page="deliveries" gradient="bg-gradient-to-br from-emerald-500 to-emerald-600" onNavigate={onNavigate} />
@@ -173,7 +173,7 @@ function HomePage({ onNavigate }: { onNavigate: (page: string) => void }) {
 
       {/* ── Color Guide Table ─────────────────────────────────── */}
       <div>
-        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5 px-0.5">Colour Guide</p>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5 px-0.5">Colour Guide</p>
         <div className="rounded-xl overflow-hidden border border-border bg-card shadow-sm">
           {/* Header */}
           <div className="grid grid-cols-4 items-end border-b border-border bg-card px-4 py-3 gap-2">

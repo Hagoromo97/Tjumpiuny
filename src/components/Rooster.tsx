@@ -462,7 +462,7 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
               <Users className="size-7 opacity-30" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-semibold text-foreground">No staff yet</p>
+              <p className="text-base font-semibold text-foreground">No staff yet</p>
               <p className="text-xs text-muted-foreground mt-1">Add staff to start building the roster</p>
             </div>
             {isEditMode && (
@@ -610,35 +610,35 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
           </DialogHeader>
           <div className="flex flex-col gap-4 py-2">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Shift Name</label>
+              <label className="text-sm font-medium">Shift Name</label>
               <Input placeholder="e.g. Morning, Afternoon, Night" value={shiftForm.title} onChange={e => setShiftForm(p => ({ ...p, title: e.target.value }))} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Staff</label>
+              <label className="text-sm font-medium">Staff</label>
               <select value={shiftForm.resourceId} onChange={e => setShiftForm(p => ({ ...p, resourceId: e.target.value }))} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
                 {resources.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Date</label>
+              <label className="text-sm font-medium">Date</label>
               <Input type="date" value={shiftForm.date} onChange={e => setShiftForm(p => ({ ...p, date: e.target.value }))} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Start</label>
+                <label className="text-sm font-medium">Start</label>
                 <select value={shiftForm.startHour} onChange={e => setShiftForm(p => ({ ...p, startHour: Number(e.target.value) }))} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
                   {HOUR_LABELS.map((lbl, i) => <option key={i} value={i}>{lbl}</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">End</label>
+                <label className="text-sm font-medium">End</label>
                 <select value={shiftForm.endHour} onChange={e => setShiftForm(p => ({ ...p, endHour: Number(e.target.value) }))} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
                   {HOUR_LABELS.map((lbl, i) => <option key={i + 1} value={i + 1}>{lbl}</option>)}
                 </select>
               </div>
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Color</label>
+              <label className="text-sm font-medium">Color</label>
               <div className="flex flex-wrap gap-2">
                 {SHIFT_COLORS.map(c => (
                   <button key={c.value} onClick={() => setShiftForm(p => ({ ...p, color: c.value }))} title={c.label}
@@ -677,15 +677,15 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
           </DialogHeader>
           <div className="flex flex-col gap-4 py-2">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Name</label>
+              <label className="text-sm font-medium">Name</label>
               <Input placeholder="e.g. Ahmad Faris" value={resForm.name} onChange={e => setResForm(p => ({ ...p, name: e.target.value }))} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Role</label>
+              <label className="text-sm font-medium">Role</label>
               <Input placeholder="e.g. Driver, Operator" value={resForm.role} onChange={e => setResForm(p => ({ ...p, role: e.target.value }))} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Color</label>
+              <label className="text-sm font-medium">Color</label>
               <div className="flex flex-wrap gap-2">
                 {RESOURCE_COLORS.map(c => (
                   <button key={c} onClick={() => setResForm(p => ({ ...p, color: c }))}

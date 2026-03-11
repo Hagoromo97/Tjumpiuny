@@ -557,7 +557,7 @@ export function MapMarkerPage() {
         {/* ── Stats Card ── */}
         <Card className="rounded-2xl bg-card/80 backdrop-blur-xl border-0 shadow-xl">
           <CardHeader className="pb-3 px-6 pt-6">
-            <CardTitle className="text-base flex items-center gap-2">
+            <CardTitle className="text-lg flex items-center gap-2">
               <RouteIcon className="size-4 text-blue-500" />
               Marker Stats
             </CardTitle>
