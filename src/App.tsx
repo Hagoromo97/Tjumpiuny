@@ -6,7 +6,6 @@ const RouteList = lazy(() => import("@/components/RouteList").then(m => ({ defau
 const Settings = lazy(() => import("@/components/Settings").then(m => ({ default: m.Settings })))
 const PlanoVM = lazy(() => import("@/components/PlanoVM").then(m => ({ default: m.PlanoVM })))
 const DeliveryTableDialog = lazy(() => import("@/components/DeliveryTableDialog").then(m => ({ default: m.DeliveryTableDialog })))
-const MapMarkerPage = lazy(() => import("@/components/MapMarkerPage").then(m => ({ default: m.MapMarkerPage })))
 const Album = lazy(() => import("@/components/Album").then(m => ({ default: m.Album })))
 const Rooster = lazy(() => import("@/components/Rooster").then(m => ({ default: m.Rooster })))
 import { EditModeProvider } from "@/contexts/EditModeContext"
@@ -289,8 +288,6 @@ function AppContent() {
             <DeliveryTableDialog />
           </div>
         )
-      case "map-marker":
-        return <MapMarkerPage />
       case "rooster":
         return <Rooster viewMode={roosterViewMode} />
       case "settings":
@@ -302,8 +299,6 @@ function AppContent() {
         return <Settings section="appearance-font" />
       case "settings-route-colors":
         return <Settings section="route-colors" />
-      case "settings-map":
-        return <Settings section="map-defaultview" />
       case "settings-security":
         return <Settings section="security" />
       case "plano-vm":
@@ -322,8 +317,6 @@ function AppContent() {
         return { parent: { label: "Vending Machine", icon: Package }, current: "Route List" }
       case "deliveries":
         return { parent: { label: "Vending Machine", icon: Package }, current: "Location" }
-      case "map-marker":
-        return { parent: { label: "Vending Machine", icon: Package }, current: "Map Marker" }
       case "rooster":
         return { parent: { label: "Schedule", icon: Users }, current: "Rooster" }
       case "settings":
@@ -335,8 +328,6 @@ function AppContent() {
         return { parent: { label: "Settings", icon: Settings2 }, current: "Font" }
       case "settings-route-colors":
         return { parent: { label: "Settings", icon: Settings2 }, current: "Route Colours" }
-      case "settings-map":
-        return { parent: { label: "Settings", icon: Settings2 }, current: "Map Settings" }
       case "settings-security":
         return { parent: { label: "Settings", icon: Settings2 }, current: "Security" }
       case "plano-vm":

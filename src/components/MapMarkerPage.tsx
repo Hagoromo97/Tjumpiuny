@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { MapPin, Filter, Plus, X, Check, Info, Route as RouteIcon } from "lucide-react"
+import { MapPin, Filter, Plus, X, Check, Info, Route as RouteIcon, Loader2 } from "lucide-react"
 
 /* ─── Leaflet icon factory ────────────────────────────────────────────────── */
 function makeIcon(color: string, isCustom = false, selected = false): L.DivIcon {
