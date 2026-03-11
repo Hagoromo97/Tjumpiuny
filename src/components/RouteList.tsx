@@ -1020,7 +1020,7 @@ export function RouteList() {
                       {/* Code + shift — tight under name */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                         <span style={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>{route.code}</span>
-                        <span style={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>{route.shift}</span>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: route.shift === 'PM' ? '#c2410c' : route.shift === 'AM' ? '#1e3a8a' : 'hsl(var(--muted-foreground))' }}>{route.shift}</span>
                       </div>
                       {/* Pin (left) + stops (right) — bottom row */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.5rem' }}>
@@ -1032,10 +1032,13 @@ export function RouteList() {
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             cursor: 'pointer', fontSize: '1rem', lineHeight: 1,
                             opacity: pinnedIds.has(route.id) ? 1 : 0.4,
-                            transition: 'opacity 0.15s',
+                            transition: 'opacity 0.15s', gap: '0.3rem',
                           }}
                         >
                           {pinnedIds.has(route.id) ? '📌' : '📍'}
+                          <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'hsl(var(--muted-foreground))', letterSpacing: '0.03em' }}>
+                            {pinnedIds.has(route.id) ? 'Unpin' : 'Pin'}
+                          </span>
                         </button>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
                           <span style={{ fontSize: '1rem', fontWeight: 900, color: markerColor, lineHeight: 1 }}>{route.deliveryPoints.length}</span>
@@ -1418,7 +1421,10 @@ export function RouteList() {
                               {deliveryPoints.filter(p => isDeliveryActive(p.delivery)).length}/{deliveryPoints.length} active
                             </span>
                             {route.shift && (
-                              <span className="text-[10px] font-semibold px-1.5 py-px rounded-full" style={{ background: `${markerColor}28`, color: markerColor }}>
+                              <span className="text-[10px] font-semibold px-1.5 py-px rounded-full" style={{
+                                background: route.shift === 'PM' ? '#c2410c28' : route.shift === 'AM' ? '#1e3a8a28' : `${markerColor}28`,
+                                color: route.shift === 'PM' ? '#c2410c' : route.shift === 'AM' ? '#1e3a8a' : markerColor
+                              }}>
                                 {route.shift}
                               </span>
                             )}

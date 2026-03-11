@@ -191,11 +191,7 @@ function HomePage({ onNavigate }: { onNavigate: (page: string) => void }) {
               return (
                 <div
                   key={day.en}
-                  className={`grid grid-cols-4 items-center px-4 py-3 gap-2 transition-colors duration-200 ease-in-out ${
-                    isToday
-                      ? "bg-primary/[0.07] dark:bg-primary/[0.12]"
-                      : "hover:bg-muted/50 active:bg-muted/70"
-                  }`}
+                  className="grid grid-cols-4 items-center px-4 py-3 gap-2"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     {isToday && (
@@ -205,9 +201,9 @@ function HomePage({ onNavigate }: { onNavigate: (page: string) => void }) {
                       <p className={`text-sm font-semibold truncate ${isToday ? "text-primary" : "text-foreground"}`}>{day.en}</p>
                     </div>
                   </div>
-                  <div className="flex justify-center"><ColorPill color={STOCK_IN_COLORS[i]} /></div>
-                  <div className="flex justify-center"><ColorPill color={MOVE_FRONT_COLORS[i]} /></div>
-                  <div className="flex justify-center"><ColorPill color={EXPIRED_COLORS[i]} /></div>
+                  <div className="flex justify-center"><ColorPill color={STOCK_IN_COLORS[i]} size="sm" /></div>
+                  <div className="flex justify-center"><ColorPill color={MOVE_FRONT_COLORS[i]} size="sm" /></div>
+                  <div className="flex justify-center"><ColorPill color={EXPIRED_COLORS[i]} size="sm" /></div>
                 </div>
               )
             })}
