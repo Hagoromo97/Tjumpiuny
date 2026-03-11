@@ -1,4 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react"
+import bgDark from "../../icon/IMG_8601.jpeg"
+import bgLight from "../../icon/IMG_8602.jpeg"
 import { List, Info, Plus, Check, X, Edit2, Trash2, Search, Settings, Save, ArrowUp, ArrowDown, Truck, Loader2, Maximize2, Minimize2, SlidersHorizontal, CheckCircle2, MapPin, Route, AlertCircle, History, Map } from "lucide-react"
 import { toast } from "sonner"
 import { RowInfoModal } from "./RowInfoModal"
@@ -136,6 +138,12 @@ const getRouteColorPalette = (): string[] => {
 
 export function RouteList() {
   const { isEditMode, hasUnsavedChanges, isSaving, setHasUnsavedChanges, registerSaveHandler, saveChanges, registerDiscardHandler } = useEditMode()
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains("dark"))
+  useEffect(() => {
+    const obs = new MutationObserver(() => setIsDark(document.documentElement.classList.contains("dark")))
+    obs.observe(document.documentElement, { attributeFilter: ["class"] })
+    return () => obs.disconnect()
+  }, [])
   const [routes, setRoutes] = useState<Route[]>(DEFAULT_ROUTES)
   const routesSnapshotRef = useRef<Route[]>([])
   const [routeColorPalette, setRouteColorPalette] = useState<string[]>(getRouteColorPalette)
@@ -1000,6 +1008,8 @@ export function RouteList() {
           <div key={route.id} style={{ display: 'flex', justifyContent: 'center' }}>
             {/* ── Route Card ── */}
             <div style={{ width: 340, height: 520, borderRadius: 22, overflow: 'hidden', position: 'relative', background: 'hsl(var(--card))', border: `1.5px solid ${markerColor}55`, boxShadow: `0 0 0 1px ${markerColor}18` }}>
+              {/* Background image – subtle */}
+              <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${isDark ? bgDark : bgLight})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.35, zIndex: 0, pointerEvents: 'none' }} />
               {/* Sliding wrapper */}
               <div style={{ position: 'relative', zIndex: 1, display: 'flex', width: 1020, height: '100%', transform: cardPanel.edit ? 'translateX(-680px)' : cardPanel.info ? 'translateX(-340px)' : 'translateX(0)', transition: 'transform 0.38s cubic-bezier(0.4,0,0.2,1)' }}>
 
@@ -1008,11 +1018,6 @@ export function RouteList() {
 
                   {/* ── Colored header band ── */}
                   <div style={{ position: 'relative', background: 'transparent', overflow: 'hidden', flexShrink: 0, padding: '1.1rem 1.2rem 0.9rem' }}>
-                    {/* Decorative circles behind */}
-                    <div style={{ position: 'absolute', width: 180, height: 180, borderRadius: '50%', background: `${markerColor}12`, top: -60, right: -40 }} />
-                    <div style={{ position: 'absolute', width: 100, height: 100, borderRadius: '50%', background: `${markerColor}09`, bottom: -30, left: 20 }} />
-                    <div style={{ position: 'absolute', width: 60, height: 60, borderRadius: '50%', background: `${markerColor}10`, top: 10, right: 60 }} />
-
                     {/* Header content */}
                     <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                       {/* Route name */}
@@ -1058,10 +1063,10 @@ export function RouteList() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.38rem' }}>
                       {route.deliveryPoints.slice(0, 3).map((pt, i) => {
                         return (
-                          <div key={pt.code} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.81rem', background: 'hsl(var(--muted)/0.5)', borderRadius: 10, padding: '0.38rem 0.6rem', border: '1px solid hsl(var(--border)/0.6)' }}>
-                            <span style={{ width: 20, height: 20, borderRadius: 6, background: `linear-gradient(135deg, ${markerColor}dd, ${markerColor}88)`, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.58rem', fontWeight: 800, flexShrink: 0, boxShadow: `0 2px 6px ${markerColor}44` }}>{i + 1}</span>
+                          <div key={pt.code} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.72rem', background: 'hsl(var(--muted)/0.5)', borderRadius: 10, padding: '0.32rem 0.55rem', border: '1px solid hsl(var(--border)/0.6)' }}>
+                            <span style={{ width: 18, height: 18, borderRadius: 5, background: `linear-gradient(135deg, ${markerColor}dd, ${markerColor}88)`, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.52rem', fontWeight: 800, flexShrink: 0, boxShadow: `0 2px 6px ${markerColor}44` }}>{i + 1}</span>
                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, color: 'hsl(var(--foreground))', fontWeight: 600, minWidth: 0 }}>{pt.name}</span>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.6rem', fontWeight: 600, color: markerColor, background: `${markerColor}18`, padding: '1px 7px', borderRadius: '999px', border: `1px solid ${markerColor}44`, flexShrink: 0 }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.55rem', fontWeight: 700, color: '#5a6070', background: 'linear-gradient(135deg, #e8eaed, #c8cdd6)', padding: '1px 6px', borderRadius: '999px', border: '1px solid #b0b8c4', flexShrink: 0, letterSpacing: '0.03em', textShadow: '0 1px 0 #fff8' }}>
                               {pt.delivery}
                             </span>
                           </div>
