@@ -412,7 +412,7 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
     return (
       <div className="flex flex-1 items-center justify-center gap-2 text-muted-foreground">
         <Loader2 className="size-5 animate-spin" />
-        <span className="text-sm">Loading roster…</span>
+        <span className="text-sm loading-text">Loading Rooster…</span>
       </div>
     )
   }

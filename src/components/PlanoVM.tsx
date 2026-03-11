@@ -441,7 +441,7 @@ export function PlanoVM() {
     return (
       <div className="flex flex-1 items-center justify-center min-h-[40vh] gap-3 text-muted-foreground">
         <Loader2 className="size-5 animate-spin" />
-        <span>Loading data...</span>
+        <span className="text-sm loading-text">Loading Data…</span>
       </div>
     )
   }

@@ -871,9 +871,9 @@ export function RouteList() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center mt-24 gap-3 text-muted-foreground">
-        <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-        <span className="text-sm">Loading routes...</span>
+      <div className="flex flex-1 items-center justify-center gap-2 text-muted-foreground">
+        <Loader2 className="size-5 animate-spin" />
+        <span className="text-sm loading-text">Loading Routes…</span>
       </div>
     )
   }

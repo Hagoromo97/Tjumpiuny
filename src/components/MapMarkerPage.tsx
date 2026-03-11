@@ -363,8 +363,9 @@ export function MapMarkerPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col flex-1 min-h-0 items-center justify-center">
-        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="flex flex-1 items-center justify-center gap-2 text-muted-foreground">
+        <Loader2 className="size-5 animate-spin" />
+        <span className="text-sm loading-text">Loading Map…</span>
       </div>
     )
   }

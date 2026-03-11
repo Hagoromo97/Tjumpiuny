@@ -12,7 +12,7 @@ const Rooster = lazy(() => import("@/components/Rooster").then(m => ({ default: 
 import { EditModeProvider } from "@/contexts/EditModeContext"
 import { DeviceProvider } from "@/contexts/DeviceContext"
 import { Toaster } from "sonner"
-import { Home, Package, Settings2, Images, ChevronDown, Truck, List, Layers, MapPin, ClipboardList, Users } from "lucide-react"
+import { Home, Package, Settings2, Images, ChevronDown, Truck, List, Layers, MapPin, ClipboardList, Users, Loader2 } from "lucide-react"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -261,10 +261,13 @@ function AppContent() {
   const [currentPage, setCurrentPage] = useState("home")
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [roosterViewMode, setRoosterViewMode] = useState<"week" | "day">("week")
-  const { open, openMobile, isMobile, toggleSidebar } = useSidebar()
+  const { open, openMobile, isMobile, toggleSidebar, setOpen, setOpenMobile } = useSidebar()
 
   const handlePageChange = (page: string) => {
     if (page === currentPage) return
+    // Auto-close sidebar on navigation
+    if (isMobile) setOpenMobile(false)
+    else setOpen(false)
     setIsTransitioning(true)
     setTimeout(() => {
       setCurrentPage(page)
@@ -424,7 +427,12 @@ function AppContent() {
           )}
 
         </header>
-        <Suspense fallback={<div className="flex flex-1 items-center justify-center p-8 text-muted-foreground">Loading…</div>}>
+        <Suspense fallback={
+          <div className="flex flex-1 items-center justify-center gap-2 text-muted-foreground">
+            <Loader2 className="size-5 animate-spin" />
+            <span className="text-sm loading-text">Loading…</span>
+          </div>
+        }>
           <div className={`flex flex-col flex-1 min-h-0 overflow-y-auto ${isTransitioning ? "page-fade-out" : "page-fade-in animate-in slide-in-from-bottom-4"}`}>
             {renderContent()}
           </div>

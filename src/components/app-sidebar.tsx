@@ -71,11 +71,6 @@ const data = {
           url: "#",
           page: "deliveries",
         },
-        {
-          title: "Map Marker",
-          url: "#",
-          page: "map-marker",
-        },
       ],
     },
     {
@@ -102,14 +97,13 @@ const data = {
     { title: "Profile",     page: "settings-profile" },
     { title: "Font",        page: "settings-appearance-font" },
     { title: "Route Colours", page: "settings-route-colors" },
-    { title: "Map Settings",page: "settings-map" },
     { title: "Security",    page: "settings-security" },
   ],
 }
 
 const SETTINGS_PAGES = new Set([
   "settings-profile",
-  "settings-appearance-font","settings-route-colors","settings-map","settings-security",
+  "settings-appearance-font","settings-route-colors","settings-security",
 ])
 
 

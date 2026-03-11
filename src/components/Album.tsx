@@ -139,8 +139,9 @@ export function Album() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-1 items-center justify-center p-8 text-muted-foreground">
-        <Loader2 className="size-5 animate-spin mr-2" /> Loading album…
+      <div className="flex flex-1 items-center justify-center p-8 text-muted-foreground gap-2">
+        <Loader2 className="size-5 animate-spin" />
+        <span className="text-sm loading-text">Loading Album…</span>
       </div>
     )
   }

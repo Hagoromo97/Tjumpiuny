@@ -2,6 +2,26 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* ── Loading text shine animation ────────────────────────────────────────── */
+@keyframes loading-shine {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.loading-text {
+  background: linear-gradient(
+    90deg,
+    var(--muted-foreground, #888) 30%,
+    #ffffff 50%,
+    var(--muted-foreground, #888) 70%
+  );
+  background-size: 300% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: loading-shine 1.6s linear infinite;
+}
+
 /* ── PrimeReact Toast — full theme override ──────────────────────────────── */
 .p-toast {
   width: 22rem;

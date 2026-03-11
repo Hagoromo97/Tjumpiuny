@@ -1014,7 +1014,8 @@ export function Calendar({ view = "month" }: { view?: "month" | "week" | "day" |
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center p-8 text-muted-foreground text-sm gap-2">
-        <Loader2 className="size-4 animate-spin" /> Loading calendar…
+        <Loader2 className="size-5 animate-spin" />
+        <span className="text-sm loading-text">Loading Calendar…</span>
       </div>
     )
   }

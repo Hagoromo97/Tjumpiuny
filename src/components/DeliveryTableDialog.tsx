@@ -215,8 +215,8 @@ export function DeliveryTableDialog() {
       {/* ── Loading ──────────────────────────────────────────────────── */}
       {loading && !flat.length && (
         <div className="flex flex-1 items-center justify-center gap-2 text-muted-foreground">
-          <Loader2 className="w-5 h-5 animate-spin" />
-          <span className="text-sm">Loading routes…</span>
+          <Loader2 className="size-5 animate-spin" />
+          <span className="text-sm loading-text">Loading routes…</span>
         </div>
       )}
 
