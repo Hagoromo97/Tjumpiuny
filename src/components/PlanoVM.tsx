@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react"
-import { Plus, Trash2, ChevronLeft, ChevronRight, Image as ImageIcon, Pencil, MoreVertical, ArrowUp, ArrowDown, Upload, Link, Loader2, Save } from "lucide-react"
+import { Plus, Trash2, ChevronLeft, ChevronRight, Image as ImageIcon, Pencil, MoreVertical, ArrowUp, ArrowDown, Upload, Link, Loader2, Save, Layers } from "lucide-react"
+import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useEditMode } from "@/contexts/EditModeContext"
@@ -462,54 +463,61 @@ export function PlanoVM() {
       <div className="px-8 py-6">
         {/* Title and Add Page Button */}
         <div className="mb-6">
-          <div className="text-center mb-4">
-            <h1 className="font-bold tracking-tight" style={{ fontSize: '25px' }}>Plano VM</h1>
-            <p className="text-muted-foreground mt-1">Visual Merchandising Planogram Manager</p>
-          </div>
-          
-          {isEditMode && (
-            <div className="flex justify-end gap-2">
-              {hasUnsavedChanges && (
-                <Button
-                  onClick={saveChanges}
-                  disabled={isSaving}
-                  className="bg-green-600 hover:bg-green-700 text-white gap-2"
-                >
-                  {isSaving
-                    ? <Loader2 className="size-4 animate-spin" />
-                    : <Save className="size-4" />}
-                  {isSaving ? 'Saving...' : 'Save'}
-                </Button>
-              )}
-            <Dialog open={addPageDialog} onOpenChange={setAddPageDialog}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="size-4 mr-2" />
-                  Add Page
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create New Page</DialogTitle>
-                  <DialogDescription>Add a new planogram page</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <Input
-                    placeholder="Page name (e.g., Store Layout 1)"
-                    value={newPageName}
-                    onChange={(e) => setNewPageName(e.target.value)}
-                  />
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setAddPageDialog(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={handleAddPage}>Create Page</Button>
-                  </div>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Layers className="size-4" />
                 </div>
-              </DialogContent>
-            </Dialog>
+                <h2 className="text-base font-semibold tracking-tight text-foreground">Plano VM</h2>
+              </div>
+              <p className="ml-11 text-sm text-muted-foreground leading-relaxed">Visual Merchandising Planogram Manager</p>
             </div>
-          )}
+            {isEditMode && (
+              <div className="flex justify-end gap-2">
+                {hasUnsavedChanges && (
+                  <Button
+                    onClick={saveChanges}
+                    disabled={isSaving}
+                    className="bg-green-600 hover:bg-green-700 text-white gap-2"
+                  >
+                    {isSaving
+                      ? <Loader2 className="size-4 animate-spin" />
+                      : <Save className="size-4" />}
+                    {isSaving ? 'Saving...' : 'Save'}
+                  </Button>
+                )}
+                <Dialog open={addPageDialog} onOpenChange={setAddPageDialog}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="size-4 mr-2" />
+                      Add Page
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create New Page</DialogTitle>
+                      <DialogDescription>Add a new planogram page</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <Input
+                        placeholder="Page name (e.g., Store Layout 1)"
+                        value={newPageName}
+                        onChange={(e) => setNewPageName(e.target.value)}
+                      />
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setAddPageDialog(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handleAddPage}>Create Page</Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            )}
+          </div>
+          <Separator className="mt-4" />
         </div>
 
         {/* Page Tabs */}

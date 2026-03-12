@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import bgDark from "../../icon/IMG_8601.jpeg"
 import bgLight from "../../icon/IMG_8602.jpeg"
 import { List, Info, Plus, Check, X, Edit2, Trash2, Search, Settings, Save, ArrowUp, ArrowDown, Truck, Loader2, Maximize2, Minimize2, SlidersHorizontal, CheckCircle2, MapPin, Route, AlertCircle, History, Map as MapIcon } from "lucide-react"
+import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { RowInfoModal } from "./RowInfoModal"
 import { DeliveryMap } from "@/components/DeliveryMap"
@@ -903,14 +904,18 @@ export function RouteList() {
       {/* Route List */}
       <div className="p-5 md:p-8 max-w-[1400px] mx-auto" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
         {/* Page header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-fluid-xl page-header font-bold text-foreground">Route List</h1>
-            <p className="text-fluid-sm page-subheader text-muted-foreground mt-2">
-              {filteredRoutes.length} route{filteredRoutes.length !== 1 ? 's' : ''}
-              {(filterRegion !== 'all' || filterShift !== 'all') && <span className="ml-1 text-primary font-medium">· filtered</span>}
-            </p>
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <List className="size-4" />
+            </div>
+            <h2 className="text-base font-semibold tracking-tight text-foreground">Route List</h2>
           </div>
+          <p className="ml-11 text-sm text-muted-foreground leading-relaxed">
+            {filteredRoutes.length} route{filteredRoutes.length !== 1 ? 's' : ''}
+            {(filterRegion !== 'all' || filterShift !== 'all') && <span className="ml-1 text-primary font-medium">· filtered</span>}
+          </p>
+          <Separator className="mt-4" />
         </div>
         {/* Search + Filter */}
         <div className="mb-6 flex items-center gap-3">
@@ -1131,7 +1136,7 @@ export function RouteList() {
                             return (
                               <Popover key={type} open={isOpen} onOpenChange={open => setBadgePopover(open ? popKey : null)}>
                                 <PopoverTrigger asChild>
-                                  <span onClick={() => setBadgePopover(isOpen ? null : popKey)} style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.65rem', fontWeight: 700, color: '#5a6070', background: 'linear-gradient(135deg, #e8eaed, #c8cdd6)', padding: '1px 6px', borderRadius: '999px', border: '1px solid #b0b8c4', flexShrink: 0, letterSpacing: '0.03em', textShadow: '0 1px 0 #fff8', cursor: 'pointer', opacity: isOpen ? 0.75 : 1, transition: 'opacity 0.15s' }}>
+                                  <span onClick={() => setBadgePopover(isOpen ? null : popKey)} style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.72rem', fontWeight: 700, color: '#5a6070', background: 'linear-gradient(135deg, #e8eaed, #c8cdd6)', padding: '2px 9px', borderRadius: '6px', border: '1px solid #b0b8c4', flexShrink: 0, letterSpacing: '0.03em', textShadow: '0 1px 0 #fff8', cursor: 'pointer', opacity: isOpen ? 0.75 : 1, transition: 'opacity 0.15s' }}>
                                     {type}&nbsp;<span style={{ opacity: 0.55, fontWeight: 500 }}>{pts.length}</span>
                                   </span>
                                 </PopoverTrigger>

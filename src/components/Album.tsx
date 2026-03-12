@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { ImageIcon, LayoutGrid, Loader2 } from "lucide-react"
+import { Separator } from "@/components/ui/separator"
 import "lightgallery/css/lightgallery.css"
 import "lightgallery/css/lg-thumbnail.css"
 import "lightgallery/css/lg-zoom.css"
@@ -170,44 +171,51 @@ export function Album() {
       style={{ paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom))" }}
     >
       {/* Header */}
-      <div className="px-4 pt-5 pb-3 max-w-5xl mx-auto w-full flex items-start justify-between gap-2">
-        <div>
-          <h1 className="text-fluid-xl page-header font-bold">Album</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {allImages.length} images across {pages.length} pages
-          </p>
-        </div>
-
-        {/* Grid size picker */}
-        <div className="relative">
-          <button
-            onClick={() => setShowGridPicker(v => !v)}
-            className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-muted text-muted-foreground hover:bg-muted-foreground/20 text-xs font-medium transition-colors"
-          >
-            <LayoutGrid className="size-3.5" />
-            Grid {gridSize}
-          </button>
-          {showGridPicker && (
-            <>
-              {/* backdrop */}
-              <div className="fixed inset-0 z-10" onClick={() => setShowGridPicker(false)} />
-              <div className="absolute right-0 top-9 z-20 bg-popover border border-border rounded-xl shadow-lg p-2 flex gap-1">
-                {GRID_OPTIONS.map(opt => (
-                  <button
-                    key={opt.value}
-                    onClick={() => { setGridSize(opt.value); setShowGridPicker(false) }}
-                    className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
-                      gridSize === opt.value
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+      <div className="px-4 pt-5 pb-3 max-w-5xl mx-auto w-full">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <ImageIcon className="size-4" />
               </div>
-            </>
-          )}
+              <h2 className="text-base font-semibold tracking-tight text-foreground">Album</h2>
+            </div>
+            <p className="ml-11 text-sm text-muted-foreground leading-relaxed">
+              {allImages.length} images across {pages.length} pages
+            </p>
+          </div>
+
+          {/* Grid size picker */}
+          <div className="relative">
+            <button
+              onClick={() => setShowGridPicker(v => !v)}
+              className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-muted text-muted-foreground hover:bg-muted-foreground/20 text-xs font-medium transition-colors"
+            >
+              <LayoutGrid className="size-3.5" />
+              Grid {gridSize}
+            </button>
+            {showGridPicker && (
+              <>
+                {/* backdrop */}
+                <div className="fixed inset-0 z-10" onClick={() => setShowGridPicker(false)} />
+                <div className="absolute right-0 top-9 z-20 bg-popover border border-border rounded-xl shadow-lg p-2 flex gap-1">
+                  {GRID_OPTIONS.map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => { setGridSize(opt.value); setShowGridPicker(false) }}
+                      className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                        gridSize === opt.value
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

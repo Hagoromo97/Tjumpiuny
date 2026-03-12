@@ -2,7 +2,7 @@ import { useState, useRef } from "react"
 import type { ReactNode } from "react"
 import {
   User, Bell, Lock, Globe, Mail, Phone, Save, Shield,
-  Eye, EyeOff, Check, Type,
+  Eye, EyeOff, Check, Type, Copy,
   AlertTriangle, Navigation, Palette, Plus, Trash2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { useTheme, FONT_OPTIONS, type AppFont } from "@/hooks/use-theme"
+import { useEditMode } from "@/contexts/EditModeContext"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type SectionId =
@@ -51,10 +52,23 @@ function SectionHeader({ icon, title, description }: { icon: ReactNode; title: s
 // ─── Main export ──────────────────────────────────────────────────────────────
 export function Settings({ section = "profile" }: { section?: SectionId }) {
   const { appFont, setAppFont } = useTheme()
+  const { isEditMode } = useEditMode()
   const active = section
+
+  // Font picker local state — only committed on Apply
+  const [selectedFont, setSelectedFont] = useState<AppFont>(appFont)
+  const fontDirty = selectedFont !== appFont
 
   // Profile state
   const [profile, setProfile] = useState({ name: "John Doe", email: "john.doe@speedparcel.com", phone: "+60 12-345 6789", role: "Delivery Manager" })
+  const [copiedField, setCopiedField] = useState<string | null>(null)
+
+  const copyToClipboard = (field: string, value: string) => {
+    navigator.clipboard.writeText(value).then(() => {
+      setCopiedField(field)
+      setTimeout(() => setCopiedField(null), 1500)
+    })
+  }
 
   // Notifications state
   const [notifications, setNotifications] = useState({ email: true, push: true, sms: false, weeklyReport: true })
@@ -110,26 +124,57 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
             <SectionHeader icon={<User className="size-4" />} title="Profile" description="Maklumat akaun anda." />
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Full Name</label>
-                  <Input value={profile.name} onChange={e => setProfile({ ...profile, name: e.target.value })} placeholder="Enter your name" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Role</label>
-                  <Input value={profile.role} onChange={e => setProfile({ ...profile, role: e.target.value })} placeholder="Your role" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium flex items-center gap-2"><Mail className="size-4" />Email Address</label>
-                  <Input type="email" value={profile.email} onChange={e => setProfile({ ...profile, email: e.target.value })} placeholder="your.email@example.com" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium flex items-center gap-2"><Phone className="size-4" />Phone Number</label>
-                  <Input value={profile.phone} onChange={e => setProfile({ ...profile, phone: e.target.value })} placeholder="+60 12-345 6789" />
-                </div>
+                {([
+                  { key: 'name',  label: 'Full Name',     type: 'text',  icon: null },
+                  { key: 'role',  label: 'Role',           type: 'text',  icon: null },
+                  { key: 'email', label: 'Email Address',  type: 'email', icon: <Mail className="size-4" /> },
+                  { key: 'phone', label: 'Phone Number',   type: 'text',  icon: <Phone className="size-4" /> },
+                ] as { key: keyof typeof profile; label: string; type: string; icon: ReactNode }[]).map(({ key, label, type, icon }) => (
+                  <div key={key} className="space-y-2">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      {icon}{label}
+                    </label>
+                    <div className="relative">
+                      {isEditMode ? (
+                        <Input
+                          type={type}
+                          value={profile[key]}
+                          onChange={e => setProfile({ ...profile, [key]: e.target.value })}
+                          placeholder={label}
+                          className="pr-9"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2 min-h-9">
+                          <span className="text-sm truncate">{profile[key] || <span className="text-muted-foreground italic">—</span>}</span>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(key, profile[key])}
+                            className="ml-2 shrink-0 p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                            title="Copy"
+                          >
+                            {copiedField === key ? <Check className="size-3.5 text-green-500" /> : <Copy className="size-3.5" />}
+                          </button>
+                        </div>
+                      )}
+                      {isEditMode && (
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(key, profile[key])}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                          title="Copy"
+                        >
+                          {copiedField === key ? <Check className="size-3.5 text-green-500" /> : <Copy className="size-3.5" />}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="flex justify-end">
-                <Button onClick={() => alert("Profile settings saved!")}><Save className="size-4 mr-2" />Save Profile</Button>
-              </div>
+              {isEditMode && (
+                <div className="flex justify-end">
+                  <Button onClick={() => alert("Profile settings saved!")}><Save className="size-4 mr-2" />Save Profile</Button>
+                </div>
+              )}
             </div>
           </div>
         )
@@ -190,24 +235,36 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {FONT_OPTIONS.map(opt => {
-                  const isActive = appFont === opt.id
+                  const isSelected = selectedFont === opt.id
+                  const isApplied  = appFont === opt.id
                   return (
-                    <button key={opt.id} onClick={() => setAppFont(opt.id as AppFont)}
-                      className={`relative flex flex-col gap-1.5 rounded-lg border-2 px-4 py-3 text-left transition-all hover:scale-[1.02] ${isActive ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-border hover:border-primary/40"}`}
+                    <button key={opt.id} onClick={() => setSelectedFont(opt.id as AppFont)}
+                      className={`relative flex flex-col gap-1.5 rounded-lg border-2 px-4 py-3 text-left transition-all hover:scale-[1.02] ${isSelected ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-border hover:border-primary/40"}`}
                     >
                       <span className="text-2xl font-bold leading-none" style={{ fontFamily: opt.family }}>Aa</span>
                       <span className="text-xs text-muted-foreground truncate">{opt.label}</span>
                       <span className="text-[10px] text-muted-foreground/60 truncate" style={{ fontFamily: opt.family }}>Lorem ipsum</span>
-                      {isActive && <span className="absolute top-2 right-2 flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground"><Check className="size-2.5" /></span>}
+                      {isSelected && <span className="absolute top-2 right-2 flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground"><Check className="size-2.5" /></span>}
+                      {isApplied && !isSelected && <span className="absolute bottom-2 right-2 text-[9px] font-semibold text-muted-foreground/60 uppercase tracking-wide">active</span>}
                     </button>
                   )
                 })}
               </div>
               <div className="mt-2 p-4 rounded-lg bg-muted/40 border">
                 <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Preview</p>
-                <p className="text-base" style={{ fontFamily: FONT_OPTIONS.find(f => f.id === appFont)?.family }}>
-                  This is a text preview using <strong>{FONT_OPTIONS.find(f => f.id === appFont)?.label}</strong>. The quick brown fox jumps over the lazy dog.
+                <p className="text-base" style={{ fontFamily: FONT_OPTIONS.find(f => f.id === selectedFont)?.family }}>
+                  This is a text preview using <strong>{FONT_OPTIONS.find(f => f.id === selectedFont)?.label}</strong>. The quick brown fox jumps over the lazy dog.
                 </p>
+              </div>
+              <div className="flex items-center justify-end gap-3">
+                {fontDirty && (
+                  <button onClick={() => setSelectedFont(appFont)} className="text-xs text-muted-foreground underline hover:text-foreground">
+                    Cancel
+                  </button>
+                )}
+                <Button onClick={() => setAppFont(selectedFont)} disabled={!fontDirty} className="gap-2">
+                  <Check className="size-4" /> Apply Font
+                </Button>
               </div>
             </div>
           </div>
@@ -258,26 +315,13 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
 
         return (
           <div>
-            {/* ── Section header ── */}
-            <div className="mb-6">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                  <Palette className="size-5 text-primary" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold leading-tight">Route Card Colours</h2>
-                  <p className="text-sm text-muted-foreground mt-0.5">
-                    Warna dikitar secara berurutan pada setiap kad route yang tiada warna khas.
-                  </p>
-                </div>
-              </div>
+            <SectionHeader icon={<Palette className="size-4" />} title="Route Card Colours" description="Warna dikitar secara berurutan pada setiap kad route yang tiada warna khas." />
 
-              {/* Palette preview strip */}
-              <div className="flex h-8 rounded-lg overflow-hidden border border-border shadow-sm">
-                {routeColors.map((c, i) => (
-                  <div key={i} className="flex-1" style={{ background: c }} title={`Route ${i + 1}: ${c}`} />
-                ))}
-              </div>
+            {/* Palette preview strip */}
+            <div className="flex h-8 rounded-lg overflow-hidden border border-border shadow-sm mb-4">
+              {routeColors.map((c, i) => (
+                <div key={i} className="flex-1" style={{ background: c }} title={`Route ${i + 1}: ${c}`} />
+              ))}
             </div>
 
             {/* ── Colour rows ── */}

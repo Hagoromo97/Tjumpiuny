@@ -15,6 +15,9 @@ export type AppFont =
   | "roboto"
   | "nunito"
   | "plus-jakarta-sans"
+  | "quicksand"
+  | "figtree"
+  | "barlow"
 
 export const FONT_OPTIONS: { id: AppFont; label: string; family: string; googleId?: string }[] = [
   { id: "system",            label: "System Default",    family: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
@@ -23,6 +26,9 @@ export const FONT_OPTIONS: { id: AppFont; label: string; family: string; googleI
   { id: "roboto",            label: "Roboto",            family: "'Roboto', sans-serif",            googleId: "Roboto:wght@300;400;500;700" },
   { id: "nunito",            label: "Nunito",            family: "'Nunito', sans-serif",            googleId: "Nunito:wght@300;400;500;600;700" },
   { id: "plus-jakarta-sans", label: "Plus Jakarta Sans", family: "'Plus Jakarta Sans', sans-serif", googleId: "Plus+Jakarta+Sans:wght@300;400;500;600;700" },
+  { id: "quicksand",         label: "Quicksand",         family: "'Quicksand', sans-serif",         googleId: "Quicksand:wght@300;400;500;600;700" },
+  { id: "figtree",           label: "Figtree",           family: "'Figtree', sans-serif",           googleId: "Figtree:wght@300;400;500;600;700" },
+  { id: "barlow",            label: "Barlow",            family: "'Barlow', sans-serif",            googleId: "Barlow:wght@300;400;500;600;700" },
 ]
 
 export type AppZoom = "80" | "85" | "90" | "95" | "100" | "105" | "110" | "115" | "120"

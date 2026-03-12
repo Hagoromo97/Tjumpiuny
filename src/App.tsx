@@ -282,8 +282,14 @@ function AppContent() {
         return (
           <div className="flex flex-col flex-1 min-h-0 gap-4 p-4 md:p-6">
             <div className="shrink-0">
-              <h1 className="text-fluid-xl page-header font-bold text-foreground">Location</h1>
-              <p className="text-fluid-sm page-subheader text-muted-foreground mt-1">View and manage delivery records.</p>
+              <div className="flex items-center gap-3 mb-1">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <MapPin className="size-4" />
+                </div>
+                <h2 className="text-base font-semibold tracking-tight text-foreground">Location</h2>
+              </div>
+              <p className="ml-11 text-sm text-muted-foreground leading-relaxed">View and manage delivery records.</p>
+              <Separator className="mt-4" />
             </div>
             <DeliveryTableDialog />
           </div>
