@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react"
 import { ImageIcon, LayoutGrid, Loader2 } from "lucide-react"
-import { Separator } from "@/components/ui/separator"
 import "lightgallery/css/lightgallery.css"
 import "lightgallery/css/lg-thumbnail.css"
 import "lightgallery/css/lg-zoom.css"
