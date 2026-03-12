@@ -194,10 +194,10 @@
   overflow: hidden;
 }
 .nav-collapsible-content[data-state="open"] {
-  animation: collapsible-slide-down 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: collapsible-slide-down 0.22s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 .nav-collapsible-content[data-state="closed"] {
-  animation: collapsible-slide-up 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: collapsible-slide-up 0.18s cubic-bezier(0.4, 0, 1, 1);
 }
 
 
@@ -425,13 +425,18 @@ body {
     /* scope transitions to interactive elements only — not every node */
   }
   button, a, input, select, textarea, [role="button"] {
-    transition: color 0.15s ease, background-color 0.15s ease,
-                border-color 0.15s ease, box-shadow 0.15s ease,
-                opacity 0.15s ease, transform 0.15s ease;
+    transition: color 0.18s cubic-bezier(0.25, 0.1, 0.25, 1),
+                background-color 0.18s cubic-bezier(0.25, 0.1, 0.25, 1),
+                border-color 0.18s cubic-bezier(0.25, 0.1, 0.25, 1),
+                box-shadow 0.18s cubic-bezier(0.25, 0.1, 0.25, 1),
+                opacity 0.18s cubic-bezier(0.25, 0.1, 0.25, 1),
+                transform 0.18s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
-  /* Smooth theme-switch for surfaces */
-  body, header, aside, nav, main, section, article, div {
-    transition: background-color 0.25s ease, border-color 0.25s ease, color 0.2s ease;
+  /* Smooth theme-switch — only key structural surfaces, not all divs */
+  body, header, aside, nav, main {
+    transition: background-color 0.28s cubic-bezier(0.25, 0.1, 0.25, 1),
+                border-color 0.22s cubic-bezier(0.25, 0.1, 0.25, 1),
+                color 0.22s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
@@ -505,15 +510,22 @@ body {
 @layer components {
   .glass-card {
     @apply backdrop-blur-xl bg-card/85 border border-card-border/60;
+    transition: background-color 0.28s cubic-bezier(0.25, 0.1, 0.25, 1),
+                border-color 0.22s cubic-bezier(0.25, 0.1, 0.25, 1),
+                box-shadow 0.22s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
   .glass-header {
     @apply backdrop-blur-lg bg-background/95 border-b border-border/70;
+    transition: background-color 0.28s cubic-bezier(0.25, 0.1, 0.25, 1),
+                border-color 0.22s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
 }
 
 @layer utilities {
   .hover-elevate {
-    @apply transition-all duration-200;
+    transition: background-color 0.18s cubic-bezier(0.25, 0.1, 0.25, 1),
+                box-shadow 0.18s cubic-bezier(0.25, 0.1, 0.25, 1),
+                transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   .hover-elevate:hover {
     background-color: var(--elevate-1);
@@ -658,28 +670,10 @@ body {
 /* ────────────────────────────────────────────────────────── */
 
 /* Page transition animations */
-@keyframes fadeIn {
+@keyframes pageEnter {
   from {
     opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes fadeOut {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes slideInFromBottom {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -687,13 +681,40 @@ body {
   }
 }
 
+@keyframes pageExit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+/* Keep for backwards compat */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes slideInFromBottom {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .page-fade-in {
-  animation: fadeIn 0.3s ease-in forwards;
+  animation: pageEnter 0.32s cubic-bezier(0.25, 0.1, 0.25, 1) both;
+  will-change: opacity, transform;
 }
 
 .page-fade-out {
-  animation: fadeOut 0.3s ease-out forwards;
+  animation: pageExit 0.2s cubic-bezier(0.4, 0, 1, 1) both;
   pointer-events: none;
+  will-change: opacity, transform;
 }
 
 .animate-in {
@@ -701,11 +722,11 @@ body {
 }
 
 .fade-in {
-  animation: fadeIn 0.3s ease-out;
+  animation: fadeIn 0.25s cubic-bezier(0.25, 0.1, 0.25, 1) both;
 }
 
 .slide-in-from-bottom-4 {
-  animation: slideInFromBottom 0.5s ease-out;
+  animation: slideInFromBottom 0.32s cubic-bezier(0.25, 0.1, 0.25, 1) both;
 }
 
 /* ── Scrollbar styling (Webkit) ───────────────────────────── */
@@ -748,10 +769,21 @@ body {
 @keyframes modalSlideUp {
   from {
     opacity: 0;
-    transform: scale(0.85) translateY(20px);
+    transform: scale(0.92) translateY(14px);
   }
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes modalSlideDown {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
   }
 }

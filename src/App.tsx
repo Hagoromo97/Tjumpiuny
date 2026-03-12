@@ -271,7 +271,7 @@ function AppContent() {
     setTimeout(() => {
       setCurrentPage(page)
       setIsTransitioning(false)
-    }, 300)
+    }, 200)
   }
 
   const renderContent = () => {
@@ -430,7 +430,7 @@ function AppContent() {
             <span className="text-sm loading-text">Loading…</span>
           </div>
         }>
-          <div className={`flex flex-col flex-1 min-h-0 overflow-y-auto ${isTransitioning ? "page-fade-out" : "page-fade-in animate-in slide-in-from-bottom-4"}`}>
+          <div className={`flex flex-col flex-1 min-h-0 overflow-y-auto ${isTransitioning ? "page-fade-out" : "page-fade-in"}`}>
             {renderContent()}
           </div>
         </Suspense>
