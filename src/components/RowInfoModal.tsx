@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import QrScanner from "qr-scanner"
-import { Plus, Trash2, QrCode, ExternalLink, Pencil, Link2, ImageUp, X, CheckCircle2, Loader2, AlertCircle, Check, Camera } from "lucide-react"
+import { Plus, Trash2, QrCode, ExternalLink, Pencil, Link2, ImageUp, X, CheckCircle2, Loader2, AlertCircle, Check, Camera, ChevronRight } from "lucide-react"
 import { toast } from "sonner"
 import "lightgallery/css/lightgallery.css"
 import "lightgallery/css/lg-zoom.css"
@@ -218,7 +218,7 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={(o) => { if (!o) { setPendingUrl(null); setPendingUrlLabel("") } onOpenChange(o) }}>
       <DialogContent className="max-w-sm rounded-2xl p-0 overflow-hidden gap-0 border-border">
         {/* Header */}
         <DialogHeader className="px-5 pt-5 pb-4 border-b border-border bg-background">
@@ -358,66 +358,127 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
           {/* Navigation buttons */}
           {!isEditing && (
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2.5">Open With</p>
-              <div className="flex gap-2 flex-wrap">
-                {hasCoords && (
-                  <>
-                    <button
-                      onClick={() => openUrl(gmapsUrl, "Google Maps")}
-                      title="Google Maps"
-                      className="flex flex-col items-center gap-1.5 group flex-1 min-w-[60px]"
-                    >
-                      <div className="w-11 h-11 rounded-2xl overflow-hidden shadow-sm group-hover:shadow-md transition-all group-hover:scale-105 border border-border/40">
-                        <img src="/Gmaps.png" alt="Google Maps" className="w-full h-full object-cover" />
-                      </div>
-                      <span className="text-[10px] text-muted-foreground font-medium">Maps</span>
-                    </button>
-                    <button
-                      onClick={() => openUrl(wazeUrl, "Waze")}
-                      title="Waze"
-                      className="flex flex-col items-center gap-1.5 group flex-1 min-w-[60px]"
-                    >
-                      <div className="w-11 h-11 rounded-2xl overflow-hidden shadow-sm group-hover:shadow-md transition-all group-hover:scale-105 border border-border/40">
-                        <img src="/waze.png" alt="Waze" className="w-full h-full object-cover" />
-                      </div>
-                      <span className="text-[10px] text-muted-foreground font-medium">Waze</span>
-                    </button>
-                  </>
-                )}
-                <button
-                  onClick={() => openUrl(familyMartUrl, "FamilyMart")}
-                  title="FamilyMart"
-                  className="flex flex-col items-center gap-1.5 group flex-1 min-w-[60px]"
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Open With</p>
+              {/* Slider — grid approach so 100% resolves to container width, not content */}
+              <div className="overflow-hidden">
+                <div
+                  className="transition-transform duration-300 ease-in-out"
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '100% 100%',
+                    transform: pendingUrl ? 'translateX(-100%)' : 'translateX(0)',
+                  }}
                 >
-                  <div className="w-11 h-11 rounded-2xl overflow-hidden shadow-sm group-hover:shadow-md transition-all group-hover:scale-105 border border-border/40">
-                    <img src="/FamilyMart.png" alt="FamilyMart" className="w-full h-full object-cover" />
-                  </div>
-                  <span className="text-[10px] text-muted-foreground font-medium">FM</span>
-                </button>
-
-                {/* QR Code Button */}
-                {(qrCodeImageUrl || isEditMode) && (
-                  <button
-                    onClick={() => {
-                      setQrDecodeStatus("idle")
-                      setShowQRDialog(true)
-                    }}
-                    title={isEditMode ? (qrCodeImageUrl ? "Edit QR Code" : "Add QR Code") : "View / Scan QR Code"}
-                    className="flex flex-col items-center gap-1.5 group flex-1 min-w-[60px]"
-                  >
-                    <div className="relative w-11 h-11 rounded-2xl bg-orange-500 hover:bg-orange-600 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all group-hover:scale-105">
-                      <QrCode className="w-5 h-5 text-white" />
-                      {isEditMode && (
-                        <span className="absolute -top-1 -right-1 bg-background rounded-full p-0.5">
-                          {qrCodeImageUrl
-                            ? <Pencil className="w-2.5 h-2.5" />
-                            : <Plus className="w-2.5 h-2.5" />}
+                  {/* Panel 1 — app rows */}
+                  <div className="flex flex-col gap-1.5 min-w-0">
+                    {hasCoords && (
+                      <>
+                        <button
+                          onClick={() => openUrl(gmapsUrl, "Google Maps")}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border bg-muted/50 hover:bg-muted transition-all active:scale-[0.98] group"
+                        >
+                          <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 shadow-sm border border-border/30">
+                            <img src="/Gmaps.png" alt="Google Maps" className="w-full h-full object-cover" />
+                          </div>
+                          <span className="flex-1 text-left text-sm font-semibold text-foreground">Google Maps</span>
+                          <ChevronRight className="size-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors shrink-0" />
+                        </button>
+                        <button
+                          onClick={() => openUrl(wazeUrl, "Waze")}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border bg-muted/50 hover:bg-muted transition-all active:scale-[0.98] group"
+                        >
+                          <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 shadow-sm border border-border/30">
+                            <img src="/waze.png" alt="Waze" className="w-full h-full object-cover" />
+                          </div>
+                          <span className="flex-1 text-left text-sm font-semibold text-foreground">Waze</span>
+                          <ChevronRight className="size-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors shrink-0" />
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => openUrl(familyMartUrl, "FamilyMart")}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border bg-muted/50 hover:bg-muted transition-all active:scale-[0.98] group"
+                    >
+                      <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 shadow-sm border border-border/30">
+                        <img src="/FamilyMart.png" alt="FamilyMart" className="w-full h-full object-cover" />
+                      </div>
+                      <span className="flex-1 text-left text-sm font-semibold text-foreground">FamilyMart</span>
+                      <ChevronRight className="size-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors shrink-0" />
+                    </button>
+                    {(qrCodeImageUrl || isEditMode) && (
+                      <button
+                        onClick={() => { setQrDecodeStatus("idle"); setShowQRDialog(true) }}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border bg-muted/50 hover:bg-muted transition-all active:scale-[0.98] group"
+                      >
+                        <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shrink-0 shadow-sm">
+                          <QrCode className="w-4 h-4 text-white" />
+                          {isEditMode && (
+                            <span className="absolute -top-1 -right-1 bg-background rounded-full p-0.5 shadow-sm border border-border/40">
+                              {qrCodeImageUrl ? <Pencil className="w-2.5 h-2.5" /> : <Plus className="w-2.5 h-2.5" />}
+                            </span>
+                          )}
+                        </div>
+                        <span className="flex-1 text-left text-sm font-semibold text-foreground">
+                          {isEditMode ? (qrCodeImageUrl ? "Edit QR Code" : "Add QR Code") : "QR Code"}
                         </span>
-                      )}
+                        <ChevronRight className="size-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors shrink-0" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Panel 2 — confirmation */}
+                  <div className="min-w-0">
+                    <div className="relative overflow-hidden rounded-xl border border-border bg-muted/50">
+                      <div
+                        className="absolute inset-y-0 left-0 w-1 rounded-l-xl"
+                        style={{
+                          background:
+                            pendingUrlLabel === "Google Maps" ? "linear-gradient(to bottom,#4285F4,#34A853)"
+                            : pendingUrlLabel === "Waze" ? "linear-gradient(to bottom,#33CCFF,#05C8F0)"
+                            : "linear-gradient(to bottom,#007140,#00A651)",
+                        }}
+                      />
+                      <div className="flex items-center gap-3 px-3 py-2.5 pl-5">
+                        <div className="w-9 h-9 rounded-xl overflow-hidden border border-border/30 shrink-0 shadow-sm">
+                          <img
+                            src={
+                              pendingUrlLabel === "Google Maps" ? "/Gmaps.png"
+                              : pendingUrlLabel === "Waze" ? "/waze.png"
+                              : "/FamilyMart.png"
+                            }
+                            alt={pendingUrlLabel}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-foreground leading-tight truncate">Open {pendingUrlLabel}?</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">Will leave this app</p>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            onClick={() => { setPendingUrl(null); setPendingUrlLabel("") }}
+                            className="h-7 px-3 text-[11px] font-medium text-red-500 hover:text-red-600 transition-colors active:scale-95"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={confirmOpen}
+                            className="h-7 px-3 text-[11px] font-bold transition-colors active:scale-95 flex items-center gap-1"
+                            style={{
+                              color:
+                                pendingUrlLabel === "Google Maps" ? "#4285F4"
+                                : pendingUrlLabel === "Waze" ? "#05C8F0"
+                                : "#007140",
+                            }}
+                          >
+                            <ExternalLink className="w-3 h-3" />Go
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <span className="text-[10px] text-muted-foreground font-medium">QR</span>
-                  </button>
-                )}
+                  </div>
+
+                </div>
               </div>
             </div>
           )}
@@ -781,48 +842,6 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
                     )}
                   </>
                 )}
-              </div>
-
-            </DialogContent>
-          </Dialog>
-
-          {/* Confirmation dialog (open external link) */}
-          <Dialog open={!!pendingUrl} onOpenChange={(o) => { if (!o) { setPendingUrl(null); setPendingUrlLabel("") } }}>
-            <DialogContent className="max-w-sm rounded-2xl p-0 overflow-hidden gap-0">
-
-              {/* Header */}
-              <DialogHeader className="px-5 pt-5 pb-4 border-b border-border">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl overflow-hidden border border-border/40 shrink-0">
-                    <img
-                      src={pendingUrlLabel === "Google Maps" ? "/Gmaps.png" : pendingUrlLabel === "Waze" ? "/waze.png" : "/FamilyMart.png"}
-                      alt={pendingUrlLabel}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div>
-                    <DialogTitle className="text-base font-bold leading-tight">Open {pendingUrlLabel || "Link"}?</DialogTitle>
-                    <p className="text-xs text-muted-foreground mt-0.5">You will be redirected to an external app or website.</p>
-                  </div>
-                </div>
-              </DialogHeader>
-
-              {/* Body */}
-              <DialogDescription asChild>
-                <div className="px-5 py-4">
-                  <div className="bg-muted/50 rounded-xl border border-border px-4 py-3 space-y-1">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Destination</p>
-                    <p className="text-xs font-mono break-all text-foreground leading-relaxed">{pendingUrl}</p>
-                  </div>
-                </div>
-              </DialogDescription>
-
-              {/* Footer */}
-              <div className="px-5 py-4 border-t border-border flex gap-2 justify-end bg-muted/20">
-                <Button variant="outline" size="sm" onClick={() => { setPendingUrl(null); setPendingUrlLabel("") }}>Cancel</Button>
-                <Button size="sm" onClick={confirmOpen}>
-                  <ExternalLink className="w-3.5 h-3.5 mr-1.5" />Open
-                </Button>
               </div>
 
             </DialogContent>
