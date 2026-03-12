@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import bgDark from "../../icon/IMG_8601.jpeg"
 import bgLight from "../../icon/IMG_8602.jpeg"
-import { List, Info, Plus, Check, X, Edit2, Trash2, Search, Settings, Save, ArrowUp, ArrowDown, Truck, Loader2, Maximize2, Minimize2, SlidersHorizontal, CheckCircle2, MapPin, Route, AlertCircle, History, Map as MapIcon } from "lucide-react"
+import { List, Info, Plus, Check, X, Edit2, Trash2, Search, Settings, Save, ArrowUp, ArrowDown, Truck, Loader2, Maximize2, Minimize2, SlidersHorizontal, CheckCircle2, MapPin, Route, AlertCircle, History, Map as MapIcon, MapPinned, TableProperties, Shrink, Expand } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { RowInfoModal } from "./RowInfoModal"
@@ -1525,58 +1525,41 @@ export function RouteList() {
                     <div className="shrink-0 border-b border-border" style={{ background: `linear-gradient(135deg, ${markerColor}20 0%, ${markerColor}08 60%, transparent 100%)` }}>
                       {/* Color accent strip */}
                       <div style={{ height: 3, background: `linear-gradient(90deg, ${markerColor} 0%, ${markerColor}66 100%)` }} />
-                      <div className="px-5 py-3.5 flex items-center gap-3">
+                      <div className="px-5 py-3 flex items-center gap-3">
                         {(route.name + " " + route.code).toLowerCase().includes("kl")
                           ? <img src="/kl-flag.png" className="object-cover shadow-sm ring-1 ring-black/10 dark:ring-white/10 shrink-0" style={{ width: 48, height: 30, borderRadius: 4 }} alt="KL" />
                           : (route.name + " " + route.code).toLowerCase().includes("sel")
                           ? <img src="/selangor-flag.png" className="object-cover shadow-sm ring-1 ring-black/10 dark:ring-white/10 shrink-0" style={{ width: 48, height: 30, borderRadius: 4 }} alt="Selangor" />
                           : (
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${markerColor}25`, boxShadow: `0 0 0 1.5px ${markerColor}50` }}>
-                              <Truck className="size-5" style={{ color: markerColor }} />
+                            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${markerColor}25`, boxShadow: `0 0 0 1.5px ${markerColor}50` }}>
+                              <Truck className="size-4" style={{ color: markerColor }} />
                             </div>
                           )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h1 className="text-base font-bold leading-tight truncate">Route {route.name}</h1>
-                            {route.code && (
-                              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md shrink-0" style={{ background: `${markerColor}30`, color: markerColor, boxShadow: `0 0 0 1px ${markerColor}40` }}>
-                                {route.code}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[10px] text-muted-foreground">
-                              {deliveryPoints.filter(p => isDeliveryActive(p.delivery)).length}/{deliveryPoints.length} active
-                            </span>
-                            {route.shift && (
-                              <span className="text-[10px] font-semibold px-1.5 py-px rounded-full" style={{
-                                background: route.shift === 'PM' ? '#c2410c28' : route.shift === 'AM' ? '#1e3a8a28' : `${markerColor}28`,
-                                color: route.shift === 'PM' ? '#c2410c' : route.shift === 'AM' ? '#1e3a8a' : markerColor
-                              }}>
-                                {route.shift}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm" onClick={() => openSettings(route.id)} className="shrink-0 h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-foreground" title="Settings">
-                          <Settings className="size-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDialogView(v => v === 'table' ? 'map' : 'table')}
-                          className="shrink-0 h-8 w-8 p-0 rounded-lg transition-colors"
-                          style={dialogView === 'map' ? { background: `${markerColor}30`, color: markerColor, boxShadow: `0 0 0 1px ${markerColor}40` } : {}}
-                          title={dialogView === 'table' ? 'Map' : 'Table'}
+                        <h1 className="flex-1 min-w-0 text-base font-bold leading-tight truncate">Route {route.name}</h1>
+                        {/* Settings */}
+                        <button
+                          onClick={() => openSettings(route.id)}
+                          title="Settings"
+                          className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
                         >
-                          {dialogView === 'table' ? <MapIcon className="size-3.5" /> : <List className="size-3.5" />}
-                        </Button>
+                          <SlidersHorizontal className="size-4" />
+                        </button>
+                        {/* Map / Table toggle */}
+                        <button
+                          onClick={() => setDialogView(v => v === 'table' ? 'map' : 'table')}
+                          title={dialogView === 'table' ? 'Switch to Map' : 'Switch to Table'}
+                          className="shrink-0 flex items-center justify-center transition-colors"
+                          style={{ color: dialogView === 'map' ? markerColor : 'hsl(var(--muted-foreground))' }}
+                        >
+                          {dialogView === 'table' ? <MapPinned className="size-4" /> : <TableProperties className="size-4" />}
+                        </button>
+                        {/* Fullscreen */}
                         <button
                           onClick={() => setDetailFullscreen(f => !f)}
-                          className="shrink-0 p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                          title={detailFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                          title={detailFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+                          className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
                         >
-                          {detailFullscreen ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+                          {detailFullscreen ? <Shrink className="size-4" /> : <Expand className="size-4" />}
                         </button>
                       </div>
                     </div>
