@@ -989,6 +989,13 @@ export function RouteList() {
 
   return (
     <div className="relative font-light flex-1 overflow-y-auto">
+      {/* Backdrop overlay when badge popover is open */}
+      {badgePopover && (
+        <div
+          className="fixed inset-0 z-40 backdrop-blur-sm bg-black/10"
+          onClick={() => setBadgePopover(null)}
+        />
+      )}
       {/* Route List */}
       <div className="p-5 md:p-8 max-w-[1400px] mx-auto" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
         {/* Page header */}
@@ -1228,7 +1235,7 @@ export function RouteList() {
                                     {type}&nbsp;<span style={{ opacity: 0.55, fontWeight: 500 }}>{pts.length}</span>
                                   </span>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-56 p-0" align="center" side="top">
+                                <PopoverContent className="w-56 p-0 backdrop-blur-md bg-background/80" align="center" side="top">
                                   {/* Header */}
                                   <div className="flex items-center justify-between px-3 py-2 border-b border-border">
                                     <div className="flex items-center gap-1.5">
@@ -1504,9 +1511,13 @@ export function RouteList() {
 
                   <Dialog open={detailDialogOpen && route.id === currentRouteId} onOpenChange={(open) => { if (!open) { setDetailDialogOpen(false); setDetailFullscreen(false); setDialogView('table'); setSelectedRows([]) } }}>
                   <DialogContent
-                    className="p-0 gap-0 flex flex-col overflow-hidden transition-[width,height,max-width,border-radius] duration-300 ease-in-out"
+                    className={`p-0 gap-0 flex flex-col overflow-hidden duration-300 ease-in-out ${
+                      detailFullscreen
+                        ? '!fixed !inset-0 !translate-x-0 !translate-y-0 !top-0 !left-0 !w-screen !max-w-none !h-dvh !rounded-none !border-0 !shadow-none'
+                        : 'transition-[width,height,max-width,border-radius]'
+                    }`}
                     style={detailFullscreen
-                      ? { width: '100vw', maxWidth: '100vw', height: '100dvh', borderRadius: 0 }
+                      ? {}
                       : { width: '92vw', maxWidth: '56rem', height: 'calc(7 * 44px + 96px)', borderRadius: '0.75rem' }
                     }
                   >
