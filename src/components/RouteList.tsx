@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import bgDark from "../../icon/IMG_8601.jpeg"
 import bgLight from "../../icon/IMG_8602.jpeg"
+import selangorFlagImg from "../../icon/selangor-flag.png"
+import klFlagImg from "../../icon/kl-flag.png"
 import { List, Info, Plus, Check, X, Edit2, Trash2, Search, Settings, Save, ArrowUp, ArrowDown, Truck, Loader2, Maximize2, Minimize2, SlidersHorizontal, CheckCircle2, MapPin, Route, AlertCircle, History, Map as MapIcon } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
@@ -329,6 +331,44 @@ export function RouteList() {
       a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
     )
   }, [routes, searchQuery, filterRegion, filterShift])
+
+  // ── Grouped items for region-flag display ────────────────────────────────────
+  type GItem =
+    | { type: 'header'; region: string; flag: string; count: number }
+    | { type: 'divider'; dkey: string }
+    | { type: 'route'; route: Route; routeIndex: number }
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const groupedItems = useMemo((): GItem[] => {
+    const getRegion = (r: Route): 'Selangor' | 'KL' | 'Other' => {
+      const hay = (r.name + ' ' + r.code).toLowerCase()
+      if (hay.includes('sel')) return 'Selangor'
+      if (hay.includes('kl') || hay.includes('kuala lumpur')) return 'KL'
+      return 'Other'
+    }
+    const globalIdxMap = new Map(filteredRoutes.map((r, i) => [r.id, i]))
+    const selRoutes = filteredRoutes.filter(r => getRegion(r) === 'Selangor')
+    const klRoutesList = filteredRoutes.filter(r => getRegion(r) === 'KL')
+    const otherRoutes = filteredRoutes.filter(r => getRegion(r) === 'Other')
+    const items: GItem[] = []
+    if (selRoutes.length > 0) {
+      items.push({ type: 'header', region: 'Selangor', flag: selangorFlagImg, count: selRoutes.length })
+      selRoutes.forEach(r => items.push({ type: 'route', route: r, routeIndex: globalIdxMap.get(r.id)! }))
+    }
+    if (selRoutes.length > 0 && (klRoutesList.length > 0 || otherRoutes.length > 0)) {
+      items.push({ type: 'divider', dkey: 'div-1' })
+    }
+    if (klRoutesList.length > 0) {
+      items.push({ type: 'header', region: 'Kuala Lumpur', flag: klFlagImg, count: klRoutesList.length })
+      klRoutesList.forEach(r => items.push({ type: 'route', route: r, routeIndex: globalIdxMap.get(r.id)! }))
+    }
+    if ((selRoutes.length > 0 || klRoutesList.length > 0) && otherRoutes.length > 0) {
+      items.push({ type: 'divider', dkey: 'div-2' })
+    }
+    otherRoutes.forEach(r => items.push({ type: 'route', route: r, routeIndex: globalIdxMap.get(r.id)! }))
+    return items
+  }, [filteredRoutes])
+
   const [editingCell, setEditingCell] = useState<{ rowCode: string; field: string } | null>(null)
   const [editValue, setEditValue] = useState<string>("")
   const [editError, setEditError] = useState<string>("")
@@ -1015,9 +1055,29 @@ export function RouteList() {
 
         </div>
 
-        {/* ── Card grid ── */}
+        {/* ── Card grid (grouped by region with flags) ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
-        {filteredRoutes.map((route, routeIndex) => {
+        {groupedItems.map((item, _gi) => {
+          if (item.type === 'header') return (
+            <div key={`header-${item.region}`} style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.5rem 0.25rem 0.25rem' }}>
+              <img
+                src={item.flag}
+                alt={item.region}
+                style={{ width: 54, height: 36, borderRadius: 5, objectFit: 'cover', border: '1.5px solid hsl(var(--border))', boxShadow: '0 2px 10px rgba(0,0,0,0.18)', flexShrink: 0 }}
+              />
+              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.3 }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'hsl(var(--foreground))', letterSpacing: '-0.01em' }}>{item.region}</span>
+                <span style={{ fontSize: '0.68rem', color: 'hsl(var(--muted-foreground))' }}>{item.count} route{item.count !== 1 ? 's' : ''}</span>
+              </div>
+              <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, hsl(var(--border)), transparent)' }} />
+            </div>
+          )
+          if (item.type === 'divider') return (
+            <div key={item.dkey} style={{ gridColumn: '1 / -1', padding: '0.5rem 0' }}>
+              <Separator />
+            </div>
+          )
+          const { route, routeIndex } = item
           const markerColor = route.color || routeColorPalette[routeIndex % routeColorPalette.length]
           const cardPanel = getCardPanel(route.id)
           const ep = editPanelState[route.id] ?? { name: route.name, code: route.code, shift: route.shift, color: route.color || markerColor, labels: route.labels ?? ['Daily', 'Weekday', 'Alt 1', 'Alt 2'] }
