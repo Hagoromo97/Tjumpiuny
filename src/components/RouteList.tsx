@@ -1,8 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import bgDark from "../../icon/IMG_8601.jpeg"
 import bgLight from "../../icon/IMG_8602.jpeg"
-import selangorFlagImg from "../../icon/selangor-flag.png"
-import klFlagImg from "../../icon/kl-flag.png"
 import { List, Info, Plus, Check, X, Edit2, Trash2, Search, Settings, Save, ArrowUp, ArrowDown, Truck, Loader2, Maximize2, Minimize2, SlidersHorizontal, CheckCircle2, MapPin, Route, AlertCircle, History, Map as MapIcon } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
@@ -129,7 +127,87 @@ const DEFAULT_ROUTES: Route[] = [
         ]
       },
     ]
-  }
+  },
+  {
+    id: "route-2",
+    name: "Route KL 3",
+    code: "3PVK08",
+    shift: "AM",
+    deliveryPoints: [
+      {
+        code: "11",
+        name: "Hospital Kuala Lumpur",
+        delivery: "Daily",
+        latitude: 3.1691,
+        longitude: 101.6974,
+        descriptions: []
+      },
+      {
+        code: "22",
+        name: "Pantai Hospital KL",
+        delivery: "Alt 2",
+        latitude: 3.1102,
+        longitude: 101.6629,
+        descriptions: []
+      },
+    ]
+  },
+  {
+    id: "route-3",
+    name: "Route Sel 1",
+    code: "3PVS02",
+    shift: "AM",
+    deliveryPoints: [
+      {
+        code: "51",
+        name: "Hospital Shah Alam",
+        delivery: "Daily",
+        latitude: 3.0733,
+        longitude: 101.5185,
+        descriptions: []
+      },
+      {
+        code: "52",
+        name: "KPJ Shah Alam",
+        delivery: "Weekday",
+        latitude: 3.0888,
+        longitude: 101.5326,
+        descriptions: []
+      },
+    ]
+  },
+  {
+    id: "route-4",
+    name: "Route Sel 4",
+    code: "3PVS09",
+    shift: "PM",
+    deliveryPoints: [
+      {
+        code: "61",
+        name: "Hospital Klang",
+        delivery: "Daily",
+        latitude: 3.0449,
+        longitude: 101.4456,
+        descriptions: []
+      },
+    ]
+  },
+  {
+    id: "route-5",
+    name: "Route KL 11",
+    code: "3PVK15",
+    shift: "PM",
+    deliveryPoints: [
+      {
+        code: "91",
+        name: "Damansara Specialist",
+        delivery: "Alt 1",
+        latitude: 3.1500,
+        longitude: 101.6200,
+        descriptions: []
+      },
+    ]
+  },
 ]
 
 // ── Delivery type definitions ─────────────────────────────────────────────────
@@ -175,6 +253,7 @@ export function RouteList() {
   const [searchQuery, setSearchQuery] = useState("")
   const [filterRegion, setFilterRegion] = useState<"all" | "KL" | "Sel">("all")
   const [filterShift, setFilterShift] = useState<"all" | "AM" | "PM">("all")
+  const [showAllRoutes, setShowAllRoutes] = useState(false)
 
   // ── Per-card sliding panel state { info, edit } ───────────────────
   const [cardPanels, setCardPanels] = useState<Record<string, { info: boolean; edit: boolean }>>({})
@@ -332,42 +411,11 @@ export function RouteList() {
     )
   }, [routes, searchQuery, filterRegion, filterShift])
 
-  // ── Grouped items for region-flag display ────────────────────────────────────
-  type GItem =
-    | { type: 'header'; region: string; flag: string; count: number }
-    | { type: 'divider'; dkey: string }
-    | { type: 'route'; route: Route; routeIndex: number }
+  // Reset showAllRoutes when search or filter changes
+  useEffect(() => { setShowAllRoutes(false) }, [searchQuery, filterRegion, filterShift])
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const groupedItems = useMemo((): GItem[] => {
-    const getRegion = (r: Route): 'Selangor' | 'KL' | 'Other' => {
-      const hay = (r.name + ' ' + r.code).toLowerCase()
-      if (hay.includes('sel')) return 'Selangor'
-      if (hay.includes('kl') || hay.includes('kuala lumpur')) return 'KL'
-      return 'Other'
-    }
-    const globalIdxMap = new Map(filteredRoutes.map((r, i) => [r.id, i]))
-    const selRoutes = filteredRoutes.filter(r => getRegion(r) === 'Selangor')
-    const klRoutesList = filteredRoutes.filter(r => getRegion(r) === 'KL')
-    const otherRoutes = filteredRoutes.filter(r => getRegion(r) === 'Other')
-    const items: GItem[] = []
-    if (selRoutes.length > 0) {
-      items.push({ type: 'header', region: 'Selangor', flag: selangorFlagImg, count: selRoutes.length })
-      selRoutes.forEach(r => items.push({ type: 'route', route: r, routeIndex: globalIdxMap.get(r.id)! }))
-    }
-    if (selRoutes.length > 0 && (klRoutesList.length > 0 || otherRoutes.length > 0)) {
-      items.push({ type: 'divider', dkey: 'div-1' })
-    }
-    if (klRoutesList.length > 0) {
-      items.push({ type: 'header', region: 'Kuala Lumpur', flag: klFlagImg, count: klRoutesList.length })
-      klRoutesList.forEach(r => items.push({ type: 'route', route: r, routeIndex: globalIdxMap.get(r.id)! }))
-    }
-    if ((selRoutes.length > 0 || klRoutesList.length > 0) && otherRoutes.length > 0) {
-      items.push({ type: 'divider', dkey: 'div-2' })
-    }
-    otherRoutes.forEach(r => items.push({ type: 'route', route: r, routeIndex: globalIdxMap.get(r.id)! }))
-    return items
-  }, [filteredRoutes])
+  // Only show first 3 route cards when collapsed
+  const displayedRoutes = showAllRoutes ? filteredRoutes : filteredRoutes.slice(0, 4)
 
   const [editingCell, setEditingCell] = useState<{ rowCode: string; field: string } | null>(null)
   const [editValue, setEditValue] = useState<string>("")
@@ -1055,29 +1103,9 @@ export function RouteList() {
 
         </div>
 
-        {/* ── Card grid (grouped by region with flags) ── */}
+        {/* ── Card grid ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
-        {groupedItems.map((item, _gi) => {
-          if (item.type === 'header') return (
-            <div key={`header-${item.region}`} style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.5rem 0.25rem 0.25rem' }}>
-              <img
-                src={item.flag}
-                alt={item.region}
-                style={{ width: 54, height: 36, borderRadius: 5, objectFit: 'cover', border: '1.5px solid hsl(var(--border))', boxShadow: '0 2px 10px rgba(0,0,0,0.18)', flexShrink: 0 }}
-              />
-              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.3 }}>
-                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'hsl(var(--foreground))', letterSpacing: '-0.01em' }}>{item.region}</span>
-                <span style={{ fontSize: '0.68rem', color: 'hsl(var(--muted-foreground))' }}>{item.count} route{item.count !== 1 ? 's' : ''}</span>
-              </div>
-              <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, hsl(var(--border)), transparent)' }} />
-            </div>
-          )
-          if (item.type === 'divider') return (
-            <div key={item.dkey} style={{ gridColumn: '1 / -1', padding: '0.5rem 0' }}>
-              <Separator />
-            </div>
-          )
-          const { route, routeIndex } = item
+        {displayedRoutes.map((route, routeIndex) => {
           const markerColor = route.color || routeColorPalette[routeIndex % routeColorPalette.length]
           const cardPanel = getCardPanel(route.id)
           const ep = editPanelState[route.id] ?? { name: route.name, code: route.code, shift: route.shift, color: route.color || markerColor, labels: route.labels ?? ['Daily', 'Weekday', 'Alt 1', 'Alt 2'] }
@@ -2149,6 +2177,30 @@ export function RouteList() {
           )
         })}
         
+        {/* Show more / show less button */}
+        {filteredRoutes.length > 4 && (
+          <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center', paddingTop: '0.25rem' }}>
+            <button
+              onClick={() => setShowAllRoutes(prev => !prev)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
+                fontSize: '0.78rem', fontWeight: 700,
+                color: 'hsl(var(--muted-foreground))',
+                background: 'hsl(var(--muted)/0.6)',
+                border: '1.5px dashed hsl(var(--border))',
+                borderRadius: 10, padding: '0.55rem 1.4rem',
+                cursor: 'pointer', transition: 'background 0.15s, color 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'hsl(var(--muted))'; e.currentTarget.style.color = 'hsl(var(--foreground))' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'hsl(var(--muted)/0.6)'; e.currentTarget.style.color = 'hsl(var(--muted-foreground))' }}
+            >
+              {showAllRoutes
+                ? '↑ Show less'
+                : `+ ${filteredRoutes.length - 4} more Route list — click to show all`}
+            </button>
+          </div>
+        )}
+
         {/* No Results Message */}
         {filteredRoutes.length === 0 && (searchQuery || filterRegion !== "all") && (
           <div className="flex flex-col items-center justify-center py-16 text-center" style={{ width: '100%' }}>
