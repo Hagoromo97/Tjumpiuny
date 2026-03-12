@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import bgDark from "../../icon/IMG_8601.jpeg"
 import bgLight from "../../icon/IMG_8602.jpeg"
-import { List, Info, Plus, Check, X, Edit2, Trash2, Search, Settings, Save, ArrowUp, ArrowDown, Truck, Loader2, Maximize2, Minimize2, SlidersHorizontal, CheckCircle2, MapPin, Route, AlertCircle, History, Map } from "lucide-react"
+import { List, Info, Plus, Check, X, Edit2, Trash2, Search, Settings, Save, ArrowUp, ArrowDown, Truck, Loader2, Maximize2, Minimize2, SlidersHorizontal, CheckCircle2, MapPin, Route, AlertCircle, History, Map as MapIcon } from "lucide-react"
 import { toast } from "sonner"
 import { RowInfoModal } from "./RowInfoModal"
 import { DeliveryMap } from "@/components/DeliveryMap"
@@ -56,13 +56,17 @@ interface Route {
 // Returns true if the delivery point is active on the given date
 function isDeliveryActive(delivery: string, date: Date = new Date()): boolean {
   const dayOfWeek = date.getDay()   // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
-  const dateNum   = date.getDate()  // 1-31
+  // Epoch day: stable across month/year boundaries (use local noon to avoid DST issues)
+  const localNoon = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0)
+  const epochDay  = Math.floor(localNoon.getTime() / 86400000)
   switch (delivery) {
-    case 'Daily':   return true
-    case 'Alt 1':   return dateNum % 2 !== 0   // odd dates
-    case 'Alt 2':   return dateNum % 2 === 0   // even dates
-    case 'Weekday': return dayOfWeek <= 4       // Sun(0) – Thu(4)
-    default:        return true
+    case 'Daily':     return true
+    case 'Alt 1':     return epochDay % 2 !== 0                         // truly alternating day 1
+    case 'Alt 2':     return epochDay % 2 === 0                         // truly alternating day 2
+    case 'Weekday':   return dayOfWeek >= 0 && dayOfWeek <= 4           // Sun–Thu
+    case 'Weekday 2': return dayOfWeek >= 1 && dayOfWeek <= 5           // Mon–Fri
+    case 'Weekday 3': return [0, 2, 5].includes(dayOfWeek)             // Sun, Tue, Fri
+    default:          return true
   }
 }
 
@@ -127,6 +131,17 @@ const DEFAULT_ROUTES: Route[] = [
 
 // ── Label color palette ──────────────────────────────────────────────────────
 const LABEL_PALETTE = ['#22c55e', '#3b82f6', '#eab308', '#a855f7', '#ef4444', '#f97316', '#06b6d4', '#ec4899']
+
+// ── Delivery type definitions ─────────────────────────────────────────────────
+const DELIVERY_ITEMS = [
+  { value: 'Daily',     label: 'Daily',     description: 'Delivery every day',          bg: 'bg-emerald-100 dark:bg-emerald-900/40', text: 'text-emerald-700 dark:text-emerald-300', dot: '#10b981' },
+  { value: 'Alt 1',    label: 'Alt 1',     description: 'Odd dates (1, 3, 5…)',         bg: 'bg-violet-100 dark:bg-violet-900/40',  text: 'text-violet-700 dark:text-violet-300',  dot: '#8b5cf6' },
+  { value: 'Alt 2',    label: 'Alt 2',     description: 'Even dates (2, 4, 6…)',        bg: 'bg-fuchsia-100 dark:bg-fuchsia-900/40',text: 'text-fuchsia-700 dark:text-fuchsia-300',dot: '#d946ef' },
+  { value: 'Weekday',   label: 'Weekday',   description: 'Sun – Thu',                    bg: 'bg-sky-100 dark:bg-sky-900/40',        text: 'text-sky-700 dark:text-sky-300',        dot: '#0ea5e9' },
+  { value: 'Weekday 2', label: 'Weekday 2', description: 'Mon – Fri',                    bg: 'bg-blue-100 dark:bg-blue-900/40',      text: 'text-blue-700 dark:text-blue-300',      dot: '#3b82f6' },
+  { value: 'Weekday 3', label: 'Weekday 3', description: 'Sun, Tue & Fri only',          bg: 'bg-indigo-100 dark:bg-indigo-900/40',  text: 'text-indigo-700 dark:text-indigo-300',  dot: '#6366f1' },
+] as const
+const DELIVERY_MAP = new Map(DELIVERY_ITEMS.map(d => [d.value, d]))
 
 // ── Route card color palette (from Settings → Route Colours, stored in localStorage) ──
 const DEFAULT_ROUTE_COLORS = ['#374151', '#7c3aed', '#0891b2', '#16a34a', '#dc2626', '#d97706']
@@ -1009,7 +1024,7 @@ export function RouteList() {
             {/* ── Route Card ── */}
             <div style={{ width: 340, height: 520, borderRadius: 22, overflow: 'hidden', position: 'relative', background: 'hsl(var(--card))', border: `1.5px solid ${markerColor}55`, boxShadow: `0 0 0 1px ${markerColor}18` }}>
               {/* Background image – subtle */}
-              <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${isDark ? bgDark : bgLight})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.35, zIndex: 0, pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${isDark ? bgDark : bgLight})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: isDark ? 0.55 : 0.35, zIndex: 0, pointerEvents: 'none' }} />
               {/* Sliding wrapper */}
               <div style={{ position: 'relative', zIndex: 1, display: 'flex', width: 1020, height: '100%', transform: cardPanel.edit ? 'translateX(-680px)' : cardPanel.info ? 'translateX(-340px)' : 'translateX(0)', transition: 'transform 0.38s cubic-bezier(0.4,0,0.2,1)' }}>
 
@@ -1046,8 +1061,8 @@ export function RouteList() {
                           </span>
                         </button>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
-                          <span style={{ fontSize: '1rem', fontWeight: 900, color: markerColor, lineHeight: 1 }}>{route.deliveryPoints.length}</span>
-                          <span style={{ fontSize: '0.55rem', fontWeight: 700, color: markerColor, opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>stops</span>
+                          <span style={{ fontSize: '1rem', fontWeight: 900, color: isDark ? '#c0c7d0' : markerColor, lineHeight: 1 }}>{route.deliveryPoints.length}</span>
+                          <span style={{ fontSize: '0.55rem', fontWeight: 700, color: isDark ? '#c0c7d0' : markerColor, opacity: isDark ? 0.85 : 0.6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>stops</span>
                         </div>
                       </div>
                     </div>
@@ -1062,13 +1077,17 @@ export function RouteList() {
                     {/* Stops list — show 3 only */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.38rem' }}>
                       {route.deliveryPoints.slice(0, 3).map((pt, i) => {
+                        const hasCoords = pt.latitude !== 0 || pt.longitude !== 0
+                        const km = hasCoords ? haversineKm(DEFAULT_MAP_CENTER.lat, DEFAULT_MAP_CENTER.lng, pt.latitude, pt.longitude) : null
                         return (
                           <div key={pt.code} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.72rem', background: 'hsl(var(--muted)/0.5)', borderRadius: 10, padding: '0.32rem 0.55rem', border: '1px solid hsl(var(--border)/0.6)' }}>
                             <span style={{ width: 18, height: 18, borderRadius: 5, background: `linear-gradient(135deg, ${markerColor}dd, ${markerColor}88)`, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.52rem', fontWeight: 800, flexShrink: 0, boxShadow: `0 2px 6px ${markerColor}44` }}>{i + 1}</span>
                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, color: 'hsl(var(--foreground))', fontWeight: 600, minWidth: 0 }}>{pt.name}</span>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.55rem', fontWeight: 700, color: '#5a6070', background: 'linear-gradient(135deg, #e8eaed, #c8cdd6)', padding: '1px 6px', borderRadius: '999px', border: '1px solid #b0b8c4', flexShrink: 0, letterSpacing: '0.03em', textShadow: '0 1px 0 #fff8' }}>
-                              {pt.delivery}
-                            </span>
+                            {km !== null && (
+                              <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'hsl(var(--muted-foreground))', flexShrink: 0 }}>
+                                {formatKm(km)}
+                              </span>
+                            )}
                           </div>
                         )
                       })}
@@ -1082,14 +1101,17 @@ export function RouteList() {
 
                     {/* +N more locations button */}
                     {route.deliveryPoints.length > 3 && (
-                      <button
-                        onClick={() => { setCurrentRouteId(route.id); setDetailDialogOpen(true) }}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.71rem', fontWeight: 700, color: markerColor, background: `${markerColor}12`, border: `1px dashed ${markerColor}50`, borderRadius: 8, padding: '0.3rem 0.6rem', cursor: 'pointer', transition: 'background 0.15s', width: '100%' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = `${markerColor}22`)}
-                        onMouseLeave={e => (e.currentTarget.style.background = `${markerColor}12`)}
-                      >
-                        +{route.deliveryPoints.length - 3} more locations &nbsp;&rsaquo; view all
-                      </button>
+                      <>
+                        <button
+                          onClick={() => { setCurrentRouteId(route.id); setDetailDialogOpen(true) }}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.71rem', fontWeight: 700, color: isDark ? '#a0aab4' : markerColor, background: isDark ? 'rgba(160,170,180,0.08)' : `${markerColor}12`, border: isDark ? '1px dashed rgba(160,170,180,0.3)' : `1px dashed ${markerColor}50`, borderRadius: 8, padding: '0.3rem 0.6rem', cursor: 'pointer', transition: 'background 0.15s', width: '100%' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = isDark ? 'rgba(160,170,180,0.14)' : `${markerColor}22`)}
+                          onMouseLeave={e => (e.currentTarget.style.background = isDark ? 'rgba(160,170,180,0.08)' : `${markerColor}12`)}
+                        >
+                          +{route.deliveryPoints.length - 3} more locations &nbsp;&rsaquo; view all
+                        </button>
+                        <div style={{ height: 1, background: isDark ? 'rgba(160,170,180,0.15)' : 'hsl(var(--border)/0.5)', margin: '0rem 0' }} />
+                      </>
                     )}
 
                     {/* Divider */}
@@ -1112,9 +1134,9 @@ export function RouteList() {
                             return (
                               <Popover key={type} open={isOpen} onOpenChange={open => setBadgePopover(open ? popKey : null)}>
                                 <PopoverTrigger asChild>
-                                  <button style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', fontWeight: 600, padding: '2px 4px', borderRadius: '4px', border: 'none', color: markerColor, background: 'none', cursor: 'pointer', opacity: isOpen ? 0.7 : 1, transition: 'opacity 0.15s' }}>
-                                    {type} <span style={{ opacity: 0.5, fontWeight: 400 }}>{pts.length}</span>
-                                  </button>
+                                  <span onClick={() => setBadgePopover(isOpen ? null : popKey)} style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.65rem', fontWeight: 700, color: '#5a6070', background: 'linear-gradient(135deg, #e8eaed, #c8cdd6)', padding: '1px 6px', borderRadius: '999px', border: '1px solid #b0b8c4', flexShrink: 0, letterSpacing: '0.03em', textShadow: '0 1px 0 #fff8', cursor: 'pointer', opacity: isOpen ? 0.75 : 1, transition: 'opacity 0.15s' }}>
+                                    {type}&nbsp;<span style={{ opacity: 0.55, fontWeight: 500 }}>{pts.length}</span>
+                                  </span>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-56 p-0" align="center" side="top">
                                   {/* Header */}
@@ -1182,9 +1204,9 @@ export function RouteList() {
                     </button>
                     <button
                       onClick={() => { setCurrentRouteId(route.id); setDetailDialogOpen(true) }}
-                      style={{ flex: 1.8, borderRadius: 10, fontSize: '0.8rem', fontWeight: 800, padding: '0.5rem 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', background: `linear-gradient(135deg, ${markerColor} 0%, ${markerColor}cc 100%)`, color: '#fff', border: 'none', cursor: 'pointer', boxShadow: `0 4px 14px ${markerColor}44`, letterSpacing: '0.02em' }}
+                      style={{ flex: 1, borderRadius: 10, fontSize: '0.8rem', fontWeight: 800, padding: '0.5rem 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', background: `linear-gradient(135deg, ${markerColor} 0%, ${markerColor}cc 100%)`, color: '#fff', border: 'none', cursor: 'pointer', boxShadow: `0 4px 14px ${markerColor}44`, letterSpacing: '0.02em' }}
                     >
-                      <List style={{ width: 12, height: 12 }} /> View Table
+                      <List style={{ width: 12, height: 12 }} /> View
                     </button>
                   </div>
                 </div>
@@ -1404,9 +1426,9 @@ export function RouteList() {
                       <div style={{ height: 3, background: `linear-gradient(90deg, ${markerColor} 0%, ${markerColor}66 100%)` }} />
                       <div className="px-5 py-3.5 flex items-center gap-3">
                         {(route.name + " " + route.code).toLowerCase().includes("kl")
-                          ? <img src="/kl-flag.png" className="object-cover rounded-lg shadow-sm ring-1 ring-black/10 dark:ring-white/10 shrink-0" style={{ width: 48, height: 30 }} alt="KL" />
+                          ? <img src="/kl-flag.png" className="object-cover shadow-sm ring-1 ring-black/10 dark:ring-white/10 shrink-0" style={{ width: 48, height: 30, borderRadius: 4 }} alt="KL" />
                           : (route.name + " " + route.code).toLowerCase().includes("sel")
-                          ? <img src="/selangor-flag.png" className="object-cover rounded-lg shadow-sm ring-1 ring-black/10 dark:ring-white/10 shrink-0" style={{ width: 48, height: 30 }} alt="Selangor" />
+                          ? <img src="/selangor-flag.png" className="object-cover shadow-sm ring-1 ring-black/10 dark:ring-white/10 shrink-0" style={{ width: 48, height: 30, borderRadius: 4 }} alt="Selangor" />
                           : (
                             <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${markerColor}25`, boxShadow: `0 0 0 1.5px ${markerColor}50` }}>
                               <Truck className="size-5" style={{ color: markerColor }} />
@@ -1414,7 +1436,7 @@ export function RouteList() {
                           )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h1 className="text-base font-bold leading-tight truncate">{route.name}</h1>
+                            <h1 className="text-base font-bold leading-tight truncate">Route {route.name}</h1>
                             {route.code && (
                               <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md shrink-0" style={{ background: `${markerColor}30`, color: markerColor, boxShadow: `0 0 0 1px ${markerColor}40` }}>
                                 {route.code}
@@ -1435,17 +1457,18 @@ export function RouteList() {
                             )}
                           </div>
                         </div>
-                        <Button variant="ghost" size="sm" onClick={() => openSettings(route.id)} className="shrink-0 flex items-center gap-1.5 h-8 rounded-lg text-xs px-3 text-muted-foreground hover:text-foreground">
-                          <Settings className="size-3.5" />Settings
+                        <Button variant="ghost" size="sm" onClick={() => openSettings(route.id)} className="shrink-0 h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-foreground" title="Settings">
+                          <Settings className="size-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => setDialogView(v => v === 'table' ? 'map' : 'table')}
-                          className="shrink-0 flex items-center gap-1.5 h-8 rounded-lg text-xs px-3 transition-colors"
+                          className="shrink-0 h-8 w-8 p-0 rounded-lg transition-colors"
                           style={dialogView === 'map' ? { background: `${markerColor}30`, color: markerColor, boxShadow: `0 0 0 1px ${markerColor}40` } : {}}
+                          title={dialogView === 'table' ? 'Map' : 'Table'}
                         >
-                          {dialogView === 'table' ? <><Map className="size-3.5" />Map</> : <><List className="size-3.5" />Table</>}
+                          {dialogView === 'table' ? <MapIcon className="size-3.5" /> : <List className="size-3.5" />}
                         </Button>
                         <button
                           onClick={() => setDetailFullscreen(f => !f)}
@@ -1464,7 +1487,7 @@ export function RouteList() {
                       </div>
                     ) : (
                           <table className="border-collapse text-[12px] whitespace-nowrap min-w-max w-full text-center">
-                            <thead className="bg-muted/80 sticky top-0 z-10 backdrop-blur-sm">
+                            <thead className="sticky top-0 z-10 backdrop-blur-sm" style={{ background: `color-mix(in srgb, ${markerColor} 10%, hsl(var(--muted)) 90%)` }}>
                               <tr className="border-b-2" style={{ borderBottomColor: `${markerColor}70` }}>
                                 {isEditMode && (
                                   <th className="px-4 h-10 text-center w-12">
@@ -1477,10 +1500,10 @@ export function RouteList() {
                                   </th>
                                 )}
                                 {columns.filter(c => c.visible && c.key !== 'action' && !((c.key === 'lat' || c.key === 'lng') && !isEditMode)).map(col => (
-                                  <th key={col.key} className="px-4 h-10 text-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{col.label}</th>
+                                  <th key={col.key} className="px-4 h-10 text-center text-[10px] font-bold uppercase tracking-wider" style={{ color: markerColor }}>{col.label}</th>
                                 ))}
                                 {columns.find(c => c.key === 'action' && c.visible) && (
-                                  <th className="px-4 h-10 text-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Action</th>
+                                  <th className="px-4 h-10 text-center text-[10px] font-bold uppercase tracking-wider" style={{ color: markerColor }}>Action</th>
                                 )}
                           </tr>
                         </thead>
@@ -1500,13 +1523,17 @@ export function RouteList() {
                             return (
                               <tr key={point.code} className={`border-b transition-colors duration-100 ${
                                 isEditingThisRow
-                                  ? 'border-primary/50 bg-primary/6 shadow-[inset_3px_0_0_hsl(var(--primary)/0.7)]'
+                                  ? 'border-primary/50 shadow-[inset_3px_0_0_hsl(var(--primary)/0.7)]'
                                   : hasRowPending
                                   ? 'border-amber-400/40 dark:border-amber-500/30 bg-amber-50/40 dark:bg-amber-900/10'
                                   : isActive
-                                  ? index % 2 === 0 ? 'border-border/40 hover:bg-primary/8' : 'border-border/40 bg-muted/40 hover:bg-primary/8'
-                                  : 'border-border/30 opacity-40 hover:opacity-60'
-                              }`}>
+                                  ? index % 2 === 0 ? 'border-border/40' : 'border-border/40 bg-muted/30'
+                                  : 'border-border/30 opacity-35'
+                              }`}
+                              style={isEditingThisRow ? { background: `${markerColor}10` } : isActive && !hasRowPending ? { } : undefined}
+                              onMouseEnter={e => { if (!isEditingThisRow && !hasRowPending) (e.currentTarget as HTMLElement).style.background = `${markerColor}0d` }}
+                              onMouseLeave={e => { if (!isEditingThisRow && !hasRowPending) (e.currentTarget as HTMLElement).style.background = '' }}
+                              >
                                 {isEditMode && (
                                   <td className="px-4 h-12 text-center">
                                     <input
@@ -1520,7 +1547,7 @@ export function RouteList() {
                                 {columns.filter(c => c.visible).map(col => {
                                   if (col.key === 'no') return (
                                     <td key="no" className="px-4 h-10 text-center">
-                                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-md text-[10px] tabular-nums font-bold" style={{ background: `${markerColor}28`, color: markerColor }}>
+                                      <span className="text-[11px] font-semibold tabular-nums" style={{ color: markerColor }}>
                                         {index + 1}
                                       </span>
                                     </td>
@@ -1572,7 +1599,7 @@ export function RouteList() {
                                           </div>
                                         </PopoverContent>
                                       </Popover>
-                                      ) : (<span className="font-mono text-[10px] font-semibold text-muted-foreground">{point.code}</span>)}
+                                      ) : (<span className="text-[11px] font-semibold">{point.code}</span>)}
                                     </td>
                                   )
                                   if (col.key === 'name') return (
@@ -1608,29 +1635,29 @@ export function RouteList() {
                                       ) : (<span className="text-[11px] font-semibold">{point.name}</span>)}
                                     </td>
                                   )
-                                  if (col.key === 'delivery') return (
-                                    <td key="delivery" className="px-3 h-9 text-center">
-                                      {isEditMode ? (
-                                        <button
-                                          className="group inline-flex items-center gap-1.5 hover:scale-105 transition-transform mx-auto"
-                                          onClick={() => {
-                                            setDeliveryModalCode(point.code)
-                                            setDeliveryModalOpen(true)
-                                          }}
-                                        >
-                                          <span className={`text-[10px] font-semibold ${
-                                            pendingCellEdits.has(`${point.code}-delivery`)
-                                              ? 'text-amber-600 dark:text-amber-400'
-                                              : 'text-foreground'
-                                          }`}>{point.delivery}</span>
-                                          <span className={`text-[9px] font-semibold ${isActive ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>{isActive ? 'ON' : 'OFF'}</span>
-                                          <Edit2 className="size-3 opacity-0 group-hover:opacity-50 transition-opacity" />
-                                        </button>
-                                      ) : (
-                                        <span className="text-[10px] font-semibold text-foreground">{point.delivery}</span>
-                                      )}
-                                    </td>
-                                  )
+                                  if (col.key === 'delivery') {
+                                    const isPending = pendingCellEdits.has(`${point.code}-delivery`)
+                                    return (
+                                      <td key="delivery" className="px-3 h-9 text-center">
+                                        {isEditMode ? (
+                                          <button
+                                            className="group inline-flex items-center gap-1.5 hover:opacity-70 transition-opacity mx-auto"
+                                            onClick={() => {
+                                              setDeliveryModalCode(point.code)
+                                              setDeliveryModalOpen(true)
+                                            }}
+                                          >
+                                            <span className={`text-[11px] font-semibold ${isPending ? 'text-amber-600 dark:text-amber-400' : ''}`}>
+                                              {point.delivery}
+                                            </span>
+                                            <Edit2 className="size-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                                          </button>
+                                        ) : (
+                                          <span className="text-[11px] font-semibold">{point.delivery}</span>
+                                        )}
+                                      </td>
+                                    )
+                                  }
                                   if (col.key === 'km') return (
                                     <td key="km" className="px-3 h-9 text-center">
                                       <TooltipProvider delayDuration={100}>
@@ -1640,7 +1667,7 @@ export function RouteList() {
                                         >
                                           <TooltipTrigger
                                             type="button"
-                                            className="text-[10px] font-semibold text-muted-foreground cursor-help tabular-nums"
+                                            className="text-[11px] font-semibold cursor-help tabular-nums"
                                             onClick={() => setOpenKmTooltip(prev => prev === point.code ? null : point.code)}
                                           >
                                             {hasCoords && distInfo ? formatKm(distInfo.display) : ''}
@@ -1969,13 +1996,25 @@ export function RouteList() {
                   setDeliveryModalOpen(open)
                   if (!open) setDeliveryModalCode(null)
                 }}>
-                  <DialogContent className="max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Edit Label</DialogTitle>
-                      <DialogDescription>
+                  <DialogContent className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl">
+                    <DialogHeader className="px-5 pt-5 pb-3 border-b border-border">
+                      <DialogTitle className="text-base font-bold">Delivery Type</DialogTitle>
+                      <DialogDescription className="text-xs">
                         {deliveryModalCode && (() => {
                           const pt = deliveryPoints.find(p => p.code === deliveryModalCode)
-                          return pt ? `${pt.code} — ${pt.name}` : ''
+                          if (!pt) return ''
+                          const active = isDeliveryActive(pt.delivery)
+                          return (
+                            <span className="flex items-center gap-2">
+                              <span>{pt.code} — {pt.name}</span>
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                active ? 'bg-green-500/15 text-green-700 dark:text-green-400' : 'bg-red-500/15 text-red-600 dark:text-red-400'
+                              }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${ active ? 'bg-green-500' : 'bg-red-500' }`} />
+                                {active ? 'ON' : 'OFF'}
+                              </span>
+                            </span>
+                          )
                         })()}
                       </DialogDescription>
                     </DialogHeader>
@@ -1983,42 +2022,50 @@ export function RouteList() {
                     {deliveryModalCode && (() => {
                       const pt = deliveryPoints.find(p => p.code === deliveryModalCode)
                       if (!pt) return null
-                      const routeLabels = currentRoute?.labels ?? ['Daily', 'Weekday', 'Alt 1', 'Alt 2']
+                      // Build item list: known items + any unknown value already set
+                      const extraVal = DELIVERY_MAP.has(pt.delivery) ? [] : [{ value: pt.delivery, label: pt.delivery, description: '(existing)', bg: 'bg-muted', text: 'text-muted-foreground', dot: '#6b7280' }]
+                      const items = [...DELIVERY_ITEMS, ...extraVal]
                       return (
-                        <div className="space-y-2 py-2">
-                          <div className="flex flex-wrap gap-2">
-                            {routeLabels.map((lbl, i) => {
-                              const lc = LABEL_PALETTE[i % LABEL_PALETTE.length]
-                              const isSelected = pt.delivery === lbl
-                              return (
-                                <button
-                                  key={lbl}
-                                  onClick={() => {
-                                    setDeliveryPoints(prev => prev.map(p =>
-                                      p.code === deliveryModalCode ? { ...p, delivery: lbl } : p
-                                    ))
-                                    if (deliveryModalCode) {
-                                      setPendingCellEdits(prev => { const n = new Set(prev); n.add(`${deliveryModalCode}-delivery`); return n })
-                                    }
-                                  }}
-                                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.45rem 1rem', borderRadius: 6, border: 'none', background: isSelected ? lc : `${lc}20`, color: isSelected ? '#fff' : lc, fontSize: '0.84rem', fontWeight: 700, cursor: 'pointer', boxShadow: isSelected ? `0 2px 8px ${lc}55` : 'none', transition: 'all 0.15s' }}
-                                >
-                                  {isSelected && <Check className="size-3.5" />}
-                                  {lbl}
-                                </button>
-                              )
-                            })}
-                          </div>
-
-                          <div className="flex justify-end pt-1">
-                            <Button variant="outline" onClick={() => {
-                              setDeliveryModalOpen(false)
-                              setDeliveryModalCode(null)
-                            }}>Close</Button>
-                          </div>
+                        <div className="py-1.5 px-1.5">
+                          {items.map(item => {
+                            const isSelected = pt.delivery === item.value
+                            return (
+                              <button
+                                key={item.value}
+                                onClick={() => {
+                                  setDeliveryPoints(prev => prev.map(p =>
+                                    p.code === deliveryModalCode ? { ...p, delivery: item.value } : p
+                                  ))
+                                  if (deliveryModalCode) {
+                                    setPendingCellEdits(prev => { const n = new Set(prev); n.add(`${deliveryModalCode}-delivery`); return n })
+                                  }
+                                }}
+                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
+                                  isSelected ? 'bg-primary/10 dark:bg-primary/20' : 'hover:bg-muted/70'
+                                }`}
+                              >
+                                <span className="w-3 h-3 rounded-full shrink-0 ring-1 ring-black/10" style={{ backgroundColor: item.dot }} />
+                                <span className="flex-1 min-w-0">
+                                  <span className={`block text-sm font-bold ${item.text}`}>{item.label}</span>
+                                  <span className="block text-[11px] text-muted-foreground leading-tight">{item.description}</span>
+                                </span>
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                                  isDeliveryActive(item.value) ? 'bg-green-500/15 text-green-700 dark:text-green-400' : 'bg-red-500/15 text-red-600 dark:text-red-400'
+                                }`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${isDeliveryActive(item.value) ? 'bg-green-500' : 'bg-red-500'}`} />
+                                  {isDeliveryActive(item.value) ? 'ON' : 'OFF'}
+                                </span>
+                                {isSelected && <Check className="size-3.5 shrink-0 text-primary" />}
+                              </button>
+                            )
+                          })}
                         </div>
                       )
                     })()}
+
+                    <div className="px-5 pb-4 pt-2 flex justify-end border-t border-border">
+                      <Button size="sm" variant="ghost" onClick={() => { setDeliveryModalOpen(false); setDeliveryModalCode(null) }}>Close</Button>
+                    </div>
                   </DialogContent>
                 </Dialog>
 

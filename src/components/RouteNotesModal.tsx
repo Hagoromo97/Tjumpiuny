@@ -48,11 +48,13 @@ interface RouteInfo {
 
 function isDeliveryActive(delivery: string, date: Date = new Date()): boolean {
   const day = date.getDay()
-  const dateNum = date.getDate()
+  // Epoch day: stable across month/year boundaries (use local noon to avoid DST issues)
+  const localNoon = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0)
+  const epochDay  = Math.floor(localNoon.getTime() / 86400000)
   switch (delivery) {
     case 'Daily':   return true
-    case 'Alt 1':   return dateNum % 2 !== 0
-    case 'Alt 2':   return dateNum % 2 === 0
+    case 'Alt 1':   return epochDay % 2 !== 0
+    case 'Alt 2':   return epochDay % 2 === 0
     case 'Weekday': return day <= 4
     default:        return true
   }

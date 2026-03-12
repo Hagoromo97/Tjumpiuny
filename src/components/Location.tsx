@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
-import { RefreshCw, Loader2, AlertCircle, AlertTriangle, Search, X, ChevronUp, ChevronDown, ChevronsUpDown, Filter } from "lucide-react"
+import { RefreshCw, Loader2, AlertCircle, AlertTriangle, Search, X, ChevronUp, ChevronDown as ChevronDownIcon, ChevronsUpDown, Filter, Save, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface DeliveryPoint {
@@ -37,11 +38,149 @@ interface FlatPoint extends DeliveryPoint {
 type SortKey = "code" | "name" | "delivery" | "route"
 type SortDir = "asc" | "desc"
 
+// ─── Delivery option definitions ─────────────────────────────────────────────
+interface DeliveryItem {
+  value: string
+  label: string
+  description: string
+  color: string   // Tailwind bg class for the badge
+  textColor: string
+}
+
+const DELIVERY_ITEMS: DeliveryItem[] = [
+  {
+    value: "Daily",
+    label: "Daily",
+    description: "Delivery every day",
+    color: "bg-emerald-100 dark:bg-emerald-900/40",
+    textColor: "text-emerald-700 dark:text-emerald-300",
+  },
+  {
+    value: "Alt 1",
+    label: "Alt 1",
+    description: "Delivery on odd dates (1, 3, 5…)",
+    color: "bg-violet-100 dark:bg-violet-900/40",
+    textColor: "text-violet-700 dark:text-violet-300",
+  },
+  {
+    value: "Alt 2",
+    label: "Alt 2",
+    description: "Delivery on even dates (2, 4, 6…)",
+    color: "bg-fuchsia-100 dark:bg-fuchsia-900/40",
+    textColor: "text-fuchsia-700 dark:text-fuchsia-300",
+  },
+  {
+    value: "Weekday",
+    label: "Weekday",
+    description: "Sun – Thu",
+    color: "bg-sky-100 dark:bg-sky-900/40",
+    textColor: "text-sky-700 dark:text-sky-300",
+  },
+  {
+    value: "Weekday 2",
+    label: "Weekday 2",
+    description: "Mon – Fri",
+    color: "bg-blue-100 dark:bg-blue-900/40",
+    textColor: "text-blue-700 dark:text-blue-300",
+  },
+  {
+    value: "Weekday 3",
+    label: "Weekday 3",
+    description: "Sun, Tue & Fri only",
+    color: "bg-indigo-100 dark:bg-indigo-900/40",
+    textColor: "text-indigo-700 dark:text-indigo-300",
+  },
+]
+
+const DELIVERY_MAP = new Map(DELIVERY_ITEMS.map(d => [d.value, d]))
+
+function DeliveryBadge({ value, dirty }: { value: string; dirty?: boolean }) {
+  const item = DELIVERY_MAP.get(value)
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ring-offset-background transition-all",
+        item ? `${item.color} ${item.textColor}` : "bg-muted text-muted-foreground",
+        dirty && "ring-2 ring-primary ring-offset-1",
+      )}
+    >
+      {value || "—"}
+      <ChevronDownIcon className="w-3 h-3 opacity-60" />
+    </span>
+  )
+}
+
+function DeliveryPicker({
+  value,
+  dirty,
+  onChange,
+}: {
+  value: string
+  dirty: boolean
+  onChange: (v: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  // Build list: known items first, then any unknown value from existing data
+  const items = useMemo(() => {
+    if (DELIVERY_MAP.has(value)) return DELIVERY_ITEMS
+    return [
+      ...DELIVERY_ITEMS,
+      { value, label: value, description: "(existing value)", color: "bg-muted", textColor: "text-muted-foreground" },
+    ]
+  }, [value])
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" className="focus:outline-none">
+          <DeliveryBadge value={value} dirty={dirty} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-1.5" align="center" side="bottom">
+        <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Select delivery type
+        </p>
+        <div className="flex flex-col gap-0.5 mt-0.5">
+          {items.map(item => {
+            const selected = item.value === value
+            return (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => { onChange(item.value); setOpen(false) }}
+                className={cn(
+                  "flex items-start gap-2.5 w-full rounded-md px-2.5 py-2 text-left transition-colors",
+                  selected
+                    ? "bg-primary/10 dark:bg-primary/20"
+                    : "hover:bg-muted/70",
+                )}
+              >
+                {/* Color dot */}
+                <span className={cn("mt-0.5 w-2.5 h-2.5 rounded-full shrink-0 ring-1 ring-border/60", item.color)} />
+                <span className="flex-1 min-w-0">
+                  <span className={cn("block text-xs font-semibold", item.textColor)}>{item.label}</span>
+                  <span className="block text-[10px] text-muted-foreground leading-tight">{item.description}</span>
+                </span>
+                {selected && <Check className="w-3.5 h-3.5 shrink-0 text-primary mt-0.5" />}
+              </button>
+            )
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function DeliveryTableDialog() {
   const [routes, setRoutes]   = useState<Route[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<string | null>(null)
+
+  // Pending edits: key = `${routeId}::${rowIndex}`, value = new delivery string
+  const [pendingEdits, setPendingEdits] = useState<Map<string, string>>(new Map())
+  const [isSaving, setIsSaving]         = useState(false)
+  const [saveError, setSaveError]       = useState<string | null>(null)
 
   // Search & Filter
   const [search, setSearch]           = useState("")
@@ -60,6 +199,7 @@ export function DeliveryTableDialog() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json = await res.json()
       setRoutes(json.data ?? json ?? [])
+      setPendingEdits(new Map())
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load data")
     } finally {
@@ -68,6 +208,49 @@ export function DeliveryTableDialog() {
   }, [])
 
   useEffect(() => { fetchRoutes() }, [fetchRoutes])
+
+  // ── Pending-edit helpers ─────────────────────────────────────────────────
+  const pointKey = (pt: FlatPoint) => `${pt.routeId}::${pt._rowIndex}`
+
+  const effectiveDelivery = (pt: FlatPoint) =>
+    pendingEdits.get(pointKey(pt)) ?? pt.delivery
+
+  const handleDeliveryChange = (pt: FlatPoint, newValue: string) => {
+    setSaveError(null)
+    setPendingEdits(prev => {
+      const next = new Map(prev)
+      if (newValue === pt.delivery) next.delete(pointKey(pt))
+      else next.set(pointKey(pt), newValue)
+      return next
+    })
+  }
+
+  const saveChanges = async () => {
+    if (pendingEdits.size === 0 || isSaving) return
+    setIsSaving(true)
+    setSaveError(null)
+    try {
+      const updatedRoutes = routes.map(route => ({
+        ...route,
+        deliveryPoints: (route.deliveryPoints ?? []).map((pt, i) => {
+          const key = `${route.id}::${i}`
+          return pendingEdits.has(key) ? { ...pt, delivery: pendingEdits.get(key)! } : pt
+        }),
+      }))
+      const res = await fetch("/api/routes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ routes: updatedRoutes }),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      setRoutes(updatedRoutes)
+      setPendingEdits(new Map())
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Failed to save")
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   // ── Flatten all points + detect duplicates ───────────────────────────────
   const { flat, dupCodeCount, dupNameCount } = useMemo(() => {
@@ -98,9 +281,11 @@ export function DeliveryTableDialog() {
   const routeOptions = useMemo(() =>
     [...new Map(routes.map(r => [r.id, `${r.name} (${r.code})`])).entries()],
   [routes])
-  const deliveryOptions = useMemo(() =>
-    [...new Set(flat.map(p => p.delivery))].sort(),
-  [flat])
+  const deliveryOptions = useMemo(() => {
+    const known = DELIVERY_ITEMS.map(d => d.value)
+    const extra = flat.map(p => p.delivery).filter(v => !DELIVERY_MAP.has(v))
+    return [...known, ...new Set(extra)]
+  }, [flat])
 
   // ── Filter + Sort ──────────────────────────────────────────────────────
   const displayed = useMemo(() => {
@@ -138,7 +323,7 @@ export function DeliveryTableDialog() {
     if (sortKey !== col) return <ChevronsUpDown className="inline w-3 h-3 ml-0.5 text-muted-foreground/40" />
     return sortDir === "asc"
       ? <ChevronUp className="inline w-3 h-3 ml-0.5 text-primary" />
-      : <ChevronDown className="inline w-3 h-3 ml-0.5 text-primary" />
+      : <ChevronDownIcon className="inline w-3 h-3 ml-0.5 text-primary" />
   }
 
   const totalPoints = flat.length
@@ -161,10 +346,29 @@ export function DeliveryTableDialog() {
             <AlertTriangle className="w-3 h-3" />{dupNameCount} dup name
           </span>
         )}
-        <Button size="sm" variant="ghost" onClick={fetchRoutes} disabled={loading} className="ml-auto h-7 gap-1.5 text-xs">
+        <Button size="sm" variant="ghost" onClick={fetchRoutes} disabled={loading || isSaving} className="ml-auto h-7 gap-1.5 text-xs">
           <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
           Refresh
         </Button>
+        {pendingEdits.size > 0 && (
+          <Button
+            size="sm"
+            variant="default"
+            onClick={saveChanges}
+            disabled={isSaving}
+            className="h-7 gap-1.5 text-xs bg-primary hover:bg-primary/90"
+          >
+            {isSaving
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : <Save className="w-3.5 h-3.5" />}
+            {isSaving ? "Saving…" : `Save (${pendingEdits.size})`}
+          </Button>
+        )}
+        {saveError && (
+          <span className="flex items-center gap-1 text-xs font-medium text-destructive">
+            <AlertCircle className="w-3.5 h-3.5" />{saveError}
+          </span>
+        )}
       </div>
 
       {/* ── Search + Filter Bar ─────────────────────────────────────── */}
@@ -202,7 +406,10 @@ export function DeliveryTableDialog() {
           className="h-8 rounded-lg border border-input bg-background px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
         >
           <option value="">All Delivery</option>
-          {deliveryOptions.map(d => <option key={d} value={d}>{d}</option>)}
+          {deliveryOptions.map(d => {
+            const item = DELIVERY_MAP.get(d)
+            return <option key={d} value={d}>{item ? `${item.label} – ${item.description}` : d}</option>
+          })}
         </select>
         {(search || filterRoute || filterDelivery) && (
           <button
@@ -283,8 +490,8 @@ export function DeliveryTableDialog() {
                       </span>
                       {pt._dupName && <AlertTriangle className="inline w-3 h-3 ml-1 text-rose-500" />}
                     </td>
-                    <td className="px-3 py-3 text-center">
-                      <span className="text-xs text-foreground">{pt.delivery}</span>
+                    <td className="px-3 py-3 text-center text-xs">
+                      {effectiveDelivery(pt)}
                     </td>
                   </tr>
                 ))

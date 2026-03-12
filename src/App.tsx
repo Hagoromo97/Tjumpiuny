@@ -5,7 +5,7 @@ import { PWAInstallPrompt } from "@/components/PWAInstallPrompt"
 const RouteList = lazy(() => import("@/components/RouteList").then(m => ({ default: m.RouteList })))
 const Settings = lazy(() => import("@/components/Settings").then(m => ({ default: m.Settings })))
 const PlanoVM = lazy(() => import("@/components/PlanoVM").then(m => ({ default: m.PlanoVM })))
-const DeliveryTableDialog = lazy(() => import("@/components/DeliveryTableDialog").then(m => ({ default: m.DeliveryTableDialog })))
+const DeliveryTableDialog = lazy(() => import("@/components/Location").then(m => ({ default: m.DeliveryTableDialog })))
 const Album = lazy(() => import("@/components/Album").then(m => ({ default: m.Album })))
 const Rooster = lazy(() => import("@/components/Rooster").then(m => ({ default: m.Rooster })))
 import { EditModeProvider } from "@/contexts/EditModeContext"
