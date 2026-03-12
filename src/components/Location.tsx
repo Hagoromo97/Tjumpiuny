@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
-import { RefreshCw, Loader2, AlertCircle, AlertTriangle, Search, X, ChevronUp, ChevronDown as ChevronDownIcon, ChevronsUpDown, Filter, Save, Check } from "lucide-react"
+import { RefreshCw, Loader2, AlertCircle, AlertTriangle, Search, X, ChevronUp, ChevronDown as ChevronDownIcon, ChevronsUpDown, Filter, Save } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface DeliveryPoint {
@@ -93,22 +92,6 @@ const DELIVERY_ITEMS: DeliveryItem[] = [
 ]
 
 const DELIVERY_MAP = new Map(DELIVERY_ITEMS.map(d => [d.value, d]))
-
-function DeliveryBadge({ value, dirty }: { value: string; dirty?: boolean }) {
-  const item = DELIVERY_MAP.get(value)
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ring-offset-background transition-all",
-        item ? `${item.color} ${item.textColor}` : "bg-muted text-muted-foreground",
-        dirty && "ring-2 ring-primary ring-offset-1",
-      )}
-    >
-      {value || "—"}
-      <ChevronDownIcon className="w-3 h-3 opacity-60" />
-    </span>
-  )
-}
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function DeliveryTableDialog() {
