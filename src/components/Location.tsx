@@ -110,67 +110,6 @@ function DeliveryBadge({ value, dirty }: { value: string; dirty?: boolean }) {
   )
 }
 
-function DeliveryPicker({
-  value,
-  dirty,
-  onChange,
-}: {
-  value: string
-  dirty: boolean
-  onChange: (v: string) => void
-}) {
-  const [open, setOpen] = useState(false)
-  // Build list: known items first, then any unknown value from existing data
-  const items = useMemo(() => {
-    if (DELIVERY_MAP.has(value)) return DELIVERY_ITEMS
-    return [
-      ...DELIVERY_ITEMS,
-      { value, label: value, description: "(existing value)", color: "bg-muted", textColor: "text-muted-foreground" },
-    ]
-  }, [value])
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button type="button" className="focus:outline-none">
-          <DeliveryBadge value={value} dirty={dirty} />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-64 p-1.5" align="center" side="bottom">
-        <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Select delivery type
-        </p>
-        <div className="flex flex-col gap-0.5 mt-0.5">
-          {items.map(item => {
-            const selected = item.value === value
-            return (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => { onChange(item.value); setOpen(false) }}
-                className={cn(
-                  "flex items-start gap-2.5 w-full rounded-md px-2.5 py-2 text-left transition-colors",
-                  selected
-                    ? "bg-primary/10 dark:bg-primary/20"
-                    : "hover:bg-muted/70",
-                )}
-              >
-                {/* Color dot */}
-                <span className={cn("mt-0.5 w-2.5 h-2.5 rounded-full shrink-0 ring-1 ring-border/60", item.color)} />
-                <span className="flex-1 min-w-0">
-                  <span className={cn("block text-xs font-semibold", item.textColor)}>{item.label}</span>
-                  <span className="block text-[10px] text-muted-foreground leading-tight">{item.description}</span>
-                </span>
-                {selected && <Check className="w-3.5 h-3.5 shrink-0 text-primary mt-0.5" />}
-              </button>
-            )
-          })}
-        </div>
-      </PopoverContent>
-    </Popover>
-  )
-}
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function DeliveryTableDialog() {
   const [routes, setRoutes]   = useState<Route[]>([])
@@ -214,16 +153,6 @@ export function DeliveryTableDialog() {
 
   const effectiveDelivery = (pt: FlatPoint) =>
     pendingEdits.get(pointKey(pt)) ?? pt.delivery
-
-  const handleDeliveryChange = (pt: FlatPoint, newValue: string) => {
-    setSaveError(null)
-    setPendingEdits(prev => {
-      const next = new Map(prev)
-      if (newValue === pt.delivery) next.delete(pointKey(pt))
-      else next.set(pointKey(pt), newValue)
-      return next
-    })
-  }
 
   const saveChanges = async () => {
     if (pendingEdits.size === 0 || isSaving) return

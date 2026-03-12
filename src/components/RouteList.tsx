@@ -129,9 +129,6 @@ const DEFAULT_ROUTES: Route[] = [
   }
 ]
 
-// ── Label color palette ──────────────────────────────────────────────────────
-const LABEL_PALETTE = ['#22c55e', '#3b82f6', '#eab308', '#a855f7', '#ef4444', '#f97316', '#06b6d4', '#ec4899']
-
 // ── Delivery type definitions ─────────────────────────────────────────────────
 const DELIVERY_ITEMS = [
   { value: 'Daily',     label: 'Daily',     description: 'Delivery every day',          bg: 'bg-emerald-100 dark:bg-emerald-900/40', text: 'text-emerald-700 dark:text-emerald-300', dot: '#10b981' },
@@ -141,7 +138,7 @@ const DELIVERY_ITEMS = [
   { value: 'Weekday 2', label: 'Weekday 2', description: 'Mon – Fri',                    bg: 'bg-blue-100 dark:bg-blue-900/40',      text: 'text-blue-700 dark:text-blue-300',      dot: '#3b82f6' },
   { value: 'Weekday 3', label: 'Weekday 3', description: 'Sun, Tue & Fri only',          bg: 'bg-indigo-100 dark:bg-indigo-900/40',  text: 'text-indigo-700 dark:text-indigo-300',  dot: '#6366f1' },
 ] as const
-const DELIVERY_MAP = new Map(DELIVERY_ITEMS.map(d => [d.value, d]))
+const DELIVERY_MAP = new Map<string, typeof DELIVERY_ITEMS[number]>(DELIVERY_ITEMS.map(d => [d.value, d]))
 
 // ── Route card color palette (from Settings → Route Colours, stored in localStorage) ──
 const DEFAULT_ROUTE_COLORS = ['#374151', '#7c3aed', '#0891b2', '#16a34a', '#dc2626', '#d97706']
