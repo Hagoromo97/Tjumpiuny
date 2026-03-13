@@ -486,7 +486,7 @@ export function RouteList() {
   // Row Customize
   type RowOrderEntry = { code: string; position: string; name: string; delivery: string }
   const buildRowEntries = (pts: typeof deliveryPoints): RowOrderEntry[] =>
-    pts.map((p, i) => ({ code: p.code, position: String(i + 1), name: p.name, delivery: p.delivery }))
+    pts.map((p) => ({ code: p.code, position: '', name: p.name, delivery: p.delivery }))
   const [draftRowOrder, setDraftRowOrder] = useState<RowOrderEntry[]>([])
   const [savedRowOrders, setSavedRowOrders] = useState<SavedRowOrder[]>([])
   const rowOrderDirty = useMemo(() => {
@@ -529,7 +529,7 @@ export function RouteList() {
   // Row helpers
   const handleRowPositionChange = (code: string, val: string) => {
     if (val !== '' && !/^\d+$/.test(val)) return
-    const isDup = val !== '' && draftRowOrder.some(r => r.code !== code && r.position === val)
+    const isDup = val !== '' && draftRowOrder.some(r => r.code !== code && r.position !== '' && r.position === val)
     setDraftRowOrder(prev => prev.map(r => r.code === code ? { ...r, position: val } : r))
     setRowOrderError(isDup ? `Position ${val} is already used` : '')
   }
@@ -992,7 +992,7 @@ export function RouteList() {
       {/* Backdrop overlay when badge popover is open */}
       {badgePopover && (
         <div
-          className="fixed inset-0 z-40 backdrop-blur-sm bg-black/10"
+          className="fixed inset-0 z-40 backdrop-blur-[6px] bg-black/25 dark:bg-black/40 transition-all duration-200 animate-in fade-in"
           onClick={() => setBadgePopover(null)}
         />
       )}
@@ -1233,22 +1233,20 @@ export function RouteList() {
                                     {type}&nbsp;<span style={{ opacity: 0.55, fontWeight: 500 }}>{pts.length}</span>
                                   </span>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-56 p-0 backdrop-blur-md bg-background/80" align="center" side="top">
+                                <PopoverContent className="w-64 p-0 z-50 backdrop-blur-xl bg-background/90 dark:bg-card/90 border border-border/60 shadow-2xl rounded-2xl overflow-hidden" align="center" side="top">
                                   {/* Header */}
-                                  <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-xs font-bold" style={{ color: markerColor }}>{type}</span>
-                                      <span className="text-[10px] text-muted-foreground">({pts.length})</span>
-                                    </div>
-
+                                  <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border/60" style={{ background: `${markerColor}14` }}>
+                                    <span className="size-2.5 rounded-full shrink-0" style={{ background: markerColor }} />
+                                    <span className="text-xs font-bold tracking-wide" style={{ color: markerColor }}>{type}</span>
+                                    <span className="ml-auto text-[10px] font-semibold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-full">{pts.length}</span>
                                   </div>
                                   {/* Point list */}
-                                  <div className="divide-y divide-border/40 max-h-44 overflow-y-auto">
+                                  <div className="divide-y divide-border/30 max-h-48 overflow-y-auto">
                                     {pts.map(pt => (
-                                      <div key={pt.code} className="flex items-center gap-2 px-3 py-1.5 group hover:bg-muted/50 transition-colors">
+                                      <div key={pt.code} className="flex items-center gap-2.5 px-3 py-2 group hover:bg-muted/60 transition-colors duration-100">
                                         <div className="flex-1 min-w-0">
                                           <p className="text-xs font-semibold truncate text-foreground leading-tight">{pt.name || pt.code}</p>
-                                          <p className="text-[10px] text-muted-foreground font-mono">{pt.code}</p>
+                                          <p className="text-[10px] text-muted-foreground/70 font-mono mt-0.5">{pt.code}</p>
                                         </div>
                                         <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                           <button
@@ -2440,21 +2438,21 @@ export function RouteList() {
 
       {/* ── Settings Modal ──────────────────────────────────────────── */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col gap-0 p-0">
-          <div className="px-6 pt-6 pb-0 shrink-0">
-            <DialogHeader>
-              <DialogTitle>Table Settings</DialogTitle>
-              <DialogDescription>Customize how the table looks and behaves</DialogDescription>
+        <DialogContent className="w-[92vw] max-w-lg h-[80vh] max-h-[640px] overflow-hidden flex flex-col gap-0 p-0">
+          <div className="px-6 pt-5 pb-0 shrink-0">
+            <DialogHeader className="text-center items-center">
+              <DialogTitle className="text-sm font-bold">Table Settings</DialogTitle>
+              <DialogDescription className="text-xs">Customize how the table looks and behaves</DialogDescription>
             </DialogHeader>
           </div>
 
           {/* Tab Menu */}
-          <div className="flex border-b border-border shrink-0 px-6">
+          <div className="flex justify-center border-b border-border shrink-0 px-6 mt-3">
             {(['column', 'row', 'sorting'] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => setSettingsMenu(m)}
-                className={`px-5 py-3 text-sm font-semibold capitalize border-b-2 transition-colors ${
+                className={`px-4 py-2.5 text-xs font-semibold capitalize border-b-2 transition-colors ${
                   settingsMenu === m
                     ? 'border-primary text-primary'
                     : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -2539,7 +2537,7 @@ export function RouteList() {
                           onFocus={(e) => e.target.select()}
                           placeholder="#"
                           className={`w-16 text-center text-sm font-semibold ${
-                            draftRowOrder.filter(r => r.position === row.position).length > 1
+                            row.position !== '' && draftRowOrder.filter(r => r.position !== '' && r.position === row.position).length > 1
                               ? 'border-destructive focus-visible:ring-destructive/30'
                               : ''
                           }`}

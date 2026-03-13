@@ -228,7 +228,7 @@ function HomePage({ onNavigate }: { onNavigate: (page: string) => void }) {
             <Layers className="size-3.5 text-white" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-foreground tracking-tight leading-snug">Colour Legend</p>
+            <p className="text-sm font-semibold text-foreground tracking-tight leading-snug">Colour Expired</p>
             <p className="text-xs text-muted-foreground mt-0.5 leading-snug">Colour codes for stock activities</p>
           </div>
           <ChevronDown className={`size-4 shrink-0 text-muted-foreground transition-transform duration-200 ${legendOpen ? "rotate-180" : ""}`} />

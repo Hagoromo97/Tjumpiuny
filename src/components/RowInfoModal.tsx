@@ -273,10 +273,11 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
                 {point.name}
               </DialogTitle>
               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                <span className={`px-2 py-0.5 text-xs font-semibold rounded-md border ${DELIVERY_COLORS[point.delivery] ?? ""}`}>
+                <span className="text-xs text-muted-foreground">
                   {point.delivery}
                 </span>
-                <span className="text-xs font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                <span className="text-xs text-muted-foreground/50">·</span>
+                <span className="text-xs font-mono text-muted-foreground/80">
                   {point.code}
                 </span>
               </div>
@@ -338,12 +339,12 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
                   drafts.map((d, i) => (
                     <div
                       key={i}
-                      className="flex items-center gap-0 border-b border-border last:border-0"
+                      className={`flex items-center border-b border-border last:border-0 group transition-colors duration-150 hover:bg-primary/5 cursor-default ${i % 2 === 1 ? "bg-muted/10" : "bg-background"}`}
                     >
-                      <span className="w-[90px] shrink-0 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide px-3 py-2.5 bg-muted/50 border-r border-border truncate">
+                      <span className="w-[90px] shrink-0 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide px-3 py-2.5 bg-muted/50 group-hover:bg-muted/80 border-r border-border truncate transition-colors duration-150">
                         {d.key}
                       </span>
-                      <span className="flex-1 text-sm text-foreground px-3 py-2.5">
+                      <span className="flex-1 text-sm font-medium text-foreground px-3 py-2.5">
                         {d.value}
                       </span>
                     </div>
