@@ -51,13 +51,6 @@ const MONTHS = [
   "Jul","Aug","Sep","Oct","Nov","Dec",
 ]
 
-const HOUR_LABELS = Array.from({ length: 24 }, (_, i) => {
-  if (i === 0) return "12 AM"
-  if (i < 12) return `${i} AM`
-  if (i === 12) return "12 PM"
-  return `${i - 12} PM`
-})
-
 // Half-hour options for shift time selects
 const HOUR_OPTIONS = Array.from({ length: 49 }, (_, i) => {
   const h = i * 0.5
@@ -593,7 +586,6 @@ export function Rooster({ viewMode: viewModeProp = "month" }: { viewMode?: ViewM
                       const dateKey = toDateKey(date)
                       const dayShifts = rowShifts.filter(s => s.date === dateKey)
                       const isToday = isSameDay(date, today)
-                      const isWeekend = date.getDay() === 0 || date.getDay() === 6
                       return (
                         <td
                           key={dateKey}

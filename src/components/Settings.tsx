@@ -95,22 +95,6 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
   const [mapZoom, setMapZoom] = useState(() => { try { const v = localStorage.getItem(LS_DEFAULT_VIEW); if (v) return String(JSON.parse(v).zoom)     } catch { /**/ } return MAP_FALLBACK.zoom })
   const [mapSaved, setMapSaved] = useState(false)
 
-  // Route colors
-  const [routeColors, setRouteColors] = useState<string[]>(() => {
-    try { const v = localStorage.getItem(LS_ROUTE_COLORS); if (v) return JSON.parse(v) } catch { /**/ }
-    return DEFAULT_ROUTE_COLORS
-  })
-  const savedRouteColorsRef = useRef<string[]>(routeColors)
-  const routeColorsDirty = JSON.stringify(routeColors) !== JSON.stringify(savedRouteColorsRef.current)
-
-  const handleSaveRouteColors = () => {
-    localStorage.setItem(LS_ROUTE_COLORS, JSON.stringify(routeColors))
-    savedRouteColorsRef.current = [...routeColors]
-    window.dispatchEvent(new Event('fcalendar_route_colors_changed'))
-    // force re-render to update dirty flag
-    setRouteColors(c => [...c])
-  }
-
   // Per-route colors (fetched from API)
   type RouteColorEntry = { id: string; name: string; code: string; color: string }
   const [routesList, setRoutesList] = useState<RouteColorEntry[]>([])
