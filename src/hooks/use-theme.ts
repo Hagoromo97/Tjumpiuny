@@ -50,7 +50,7 @@ export function useTheme() {
     (localStorage.getItem("colorMode") as ColorMode) ?? "light"
   )
   const [appFont, setAppFont] = useState<AppFont>(() =>
-    (localStorage.getItem("appFont") as AppFont) ?? "system"
+    (localStorage.getItem("app-font") as AppFont) ?? "inter"
   )
   const [appZoom, setAppZoom] = useState<AppZoom>(() =>
     (localStorage.getItem("app-zoom") as AppZoom) ?? "100"
@@ -85,7 +85,8 @@ export function useTheme() {
     if (!opt) return
     if (opt.googleId) loadGoogleFont(opt.googleId)
     document.documentElement.style.setProperty("--app-font", opt.family)
-    localStorage.setItem("appFont", appFont)
+    document.body.style.fontFamily = opt.family
+    localStorage.setItem("app-font", appFont)
   }, [appFont])
 
   // Apply zoom (applied to body to avoid viewport distortion)

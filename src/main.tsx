@@ -31,6 +31,7 @@ import { FONT_OPTIONS } from "./hooks/use-theme"
         link.href = `https://fonts.googleapis.com/css2?family=${fontOpt.googleId}&display=swap`
         document.head.appendChild(link)
       }
+      document.documentElement.style.setProperty("--app-font", fontOpt.family)
       document.body.style.fontFamily = fontOpt.family
     }
   } catch { /* localStorage may be unavailable */ }
