@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { StickyNote, History, Plus, Trash2, Clock, Loader2, CheckCircle2, AlertCircle, Info } from "lucide-react"
+import { StickyNote, History, Plus, Trash2, Clock, Loader2, CheckCircle2, AlertCircle, Info, PlusCircle, MinusCircle, ArrowRightLeft, Pencil, Palette, Tag, ArrowUpDown, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 
 export interface RouteNote {
@@ -92,6 +92,34 @@ function formatExact(iso: string) {
     day: "2-digit", month: "short", year: "numeric",
     hour: "2-digit", minute: "2-digit",
   })
+}
+
+type ChangeKind = "created" | "added" | "removed" | "moved_out" | "moved_in" | "field_edit" | "meta" | "reorder" | "color" | "label"
+
+function classifyChange(text: string): ChangeKind {
+  if (/^Route ".+" created/.test(text))          return "created"
+  if (/^Added \d+/.test(text))                   return "added"
+  if (/^Removed \d+/.test(text))                 return "removed"
+  if (/^Moved \d+/.test(text))                   return "moved_out"
+  if (/^Received \d+/.test(text))                return "moved_in"
+  if (/^\[/.test(text))                          return "field_edit"
+  if (/^Color changed/.test(text))               return "color"
+  if (/^Labels? (added|removed)/.test(text))     return "label"
+  if (/^Location order changed/.test(text))      return "reorder"
+  return "meta"
+}
+
+const CHANGE_STYLE: Record<ChangeKind, { dot: string; badge: string; label: string; Icon: React.FC<{ className?: string }> }> = {
+  created:   { dot: "bg-emerald-500",  badge: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",  label: "Created",  Icon: Sparkles },
+  added:     { dot: "bg-green-500",    badge: "bg-green-500/10 text-green-600 dark:text-green-400",        label: "Added",    Icon: PlusCircle },
+  removed:   { dot: "bg-red-500",      badge: "bg-red-500/10 text-red-600 dark:text-red-400",              label: "Removed",  Icon: MinusCircle },
+  moved_out: { dot: "bg-orange-500",   badge: "bg-orange-500/10 text-orange-600 dark:text-orange-400",     label: "Moved",    Icon: ArrowRightLeft },
+  moved_in:  { dot: "bg-blue-500",     badge: "bg-blue-500/10 text-blue-600 dark:text-blue-400",           label: "Received", Icon: ArrowRightLeft },
+  field_edit:{ dot: "bg-yellow-500",   badge: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400",     label: "Edited",   Icon: Pencil },
+  meta:      { dot: "bg-purple-500",   badge: "bg-purple-500/10 text-purple-600 dark:text-purple-400",     label: "Route",    Icon: Info },
+  color:     { dot: "bg-pink-500",     badge: "bg-pink-500/10 text-pink-600 dark:text-pink-400",           label: "Color",    Icon: Palette },
+  label:     { dot: "bg-indigo-500",   badge: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",     label: "Label",    Icon: Tag },
+  reorder:   { dot: "bg-slate-400",    badge: "bg-slate-500/10 text-slate-600 dark:text-slate-400",        label: "Reorder",  Icon: ArrowUpDown },
 }
 
 interface Props {
@@ -309,7 +337,7 @@ export function RouteNotesModal({ open, onOpenChange, routeId, routeName, routeI
             </div>
           ) : tab === "changelog" ? (
             // changelog
-            <div className="px-4 py-3 space-y-2">
+            <div className="px-4 py-3 space-y-1">
               {changelog.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
                   <History className="size-8 opacity-25" />
@@ -317,21 +345,45 @@ export function RouteNotesModal({ open, onOpenChange, routeId, routeName, routeI
                   <p className="text-xs opacity-60">Changes are recorded when you save</p>
                 </div>
               ) : (
-                changelog.map((entry, i) => (
-                  <div key={entry.id} className="flex gap-3 items-start">
-                    <div className="flex flex-col items-center shrink-0 mt-1">
-                      <div className={`size-2 rounded-full ${i === 0 ? "bg-primary" : "bg-border"}`} />
-                      {i < changelog.length - 1 && <div className="w-px flex-1 bg-border/50 mt-1 mb-0" style={{ minHeight: "20px" }} />}
+                changelog.map((entry, i) => {
+                  const kind = classifyChange(entry.text)
+                  const style = CHANGE_STYLE[kind]
+                  const Icon = style.Icon
+                  // For field_edit entries, extract the [CODE] prefix and the rest
+                  const fieldMatch = kind === "field_edit" ? entry.text.match(/^\[([^\]]+)\]\s*(.+)$/) : null
+                  return (
+                    <div key={entry.id} className="flex gap-2.5 items-start">
+                      {/* Timeline spine */}
+                      <div className="flex flex-col items-center shrink-0 mt-[5px]">
+                        <div className={`size-2 rounded-full ${i === 0 ? style.dot : "bg-border"}`} />
+                        {i < changelog.length - 1 && <div className="w-px flex-1 bg-border/40 mt-1" style={{ minHeight: "18px" }} />}
+                      </div>
+                      {/* Content */}
+                      <div className="flex-1 pb-2.5">
+                        <div className="flex items-start gap-1.5 flex-wrap">
+                          {/* Badge */}
+                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${style.badge}`}>
+                            <Icon className="size-2.5" />
+                            {style.label}
+                          </span>
+                          {/* Text */}
+                          {fieldMatch ? (
+                            <span className="text-[12px] text-foreground leading-snug">
+                              <span className="font-mono text-[11px] bg-muted px-1 rounded mr-1">{fieldMatch[1]}</span>
+                              {fieldMatch[2]}
+                            </span>
+                          ) : (
+                            <span className="text-[12px] text-foreground leading-snug">{entry.text}</span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                          <Clock className="size-2.5" />
+                          <span title={formatExact(entry.created_at)}>{formatTime(entry.created_at)}</span>
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1 pb-3">
-                      <p className="text-[12px] text-foreground leading-snug">{entry.text}</p>
-                      <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
-                        <Clock className="size-2.5" />
-                        <span title={formatExact(entry.created_at)}>{formatTime(entry.created_at)}</span>
-                      </p>
-                    </div>
-                  </div>
-                ))
+                  )
+                })
               )}
             </div>
           ) : routeInfo ? (

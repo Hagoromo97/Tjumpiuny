@@ -859,10 +859,24 @@ export function RouteList() {
       if (!old) {
         changes.push(`Route "${route.name}" created`)
       } else {
-        if (old.name !== route.name) changes.push(`Name changed: "${old.name}" → "${route.name}"`)
-        if (old.code !== route.code) changes.push(`Code changed: ${old.code} → ${route.code}`)
+        // ── Route-level metadata changes ──────────────────────────────
+        if (old.name !== route.name)   changes.push(`Name changed: "${old.name}" → "${route.name}"`)
+        if (old.code !== route.code)   changes.push(`Code changed: ${old.code} → ${route.code}`)
         if (old.shift !== route.shift) changes.push(`Shift changed: ${old.shift} → ${route.shift}`)
+        if ((old.color ?? '') !== (route.color ?? ''))
+          changes.push(`Color changed: ${old.color ?? 'none'} → ${route.color ?? 'none'}`)
 
+        // Labels
+        const oldLabels = (old.labels ?? []).slice().sort()
+        const newLabels = (route.labels ?? []).slice().sort()
+        if (JSON.stringify(oldLabels) !== JSON.stringify(newLabels)) {
+          const addedL  = newLabels.filter(l => !oldLabels.includes(l))
+          const removedL = oldLabels.filter(l => !newLabels.includes(l))
+          if (addedL.length)   changes.push(`Labels added: ${addedL.join(", ")}`)
+          if (removedL.length) changes.push(`Labels removed: ${removedL.join(", ")}`)
+        }
+
+        // ── Cross-route moves ─────────────────────────────────────────
         // Moves OUT from this route
         const movedOut = moves.filter(m => m.fromId === route.id)
         const movedOutByDest: Record<string, MoveInfo[]> = {}
@@ -881,19 +895,44 @@ export function RouteList() {
           changes.push(`Received ${group.length} location${group.length > 1 ? 's' : ''} from "${group[0].fromName}": ${names}`)
         })
 
-        // Added (not via move)
-        const addedPts = route.deliveryPoints.filter(p => !old.deliveryPoints.find(o => o.code === p.code) && !movedCodes.has(p.code))
-        // Removed (not via move)
+        // ── Per-point add / remove / edit ─────────────────────────────
+        const addedPts   = route.deliveryPoints.filter(p => !old.deliveryPoints.find(o => o.code === p.code) && !movedCodes.has(p.code))
         const removedPts = old.deliveryPoints.filter(o => !route.deliveryPoints.find(p => p.code === o.code) && !movedCodes.has(o.code))
-        // Edited
-        const editedPts = route.deliveryPoints.filter(p => {
+        const editedPts  = route.deliveryPoints.filter(p => {
           const o = old.deliveryPoints.find(x => x.code === p.code)
-          return o && (o.name !== p.name || o.delivery !== p.delivery || o.latitude !== p.latitude || o.longitude !== p.longitude)
+          if (!o) return false
+          const descChanged = JSON.stringify((o.descriptions ?? []).slice().sort((a,b) => a.key.localeCompare(b.key)))
+                           !== JSON.stringify((p.descriptions ?? []).slice().sort((a,b) => a.key.localeCompare(b.key)))
+          return o.name !== p.name || o.delivery !== p.delivery ||
+                 o.latitude !== p.latitude || o.longitude !== p.longitude || descChanged
         })
 
-        if (addedPts.length) changes.push(`Added ${addedPts.length} location${addedPts.length > 1 ? 's' : ''}: ${addedPts.map(p => p.name || p.code).join(", ")}`)
-        if (removedPts.length) changes.push(`Removed ${removedPts.length} location${removedPts.length > 1 ? 's' : ''}: ${removedPts.map(p => p.name || p.code).join(", ")}`)
-        if (editedPts.length) changes.push(`Edited ${editedPts.length} location${editedPts.length > 1 ? 's' : ''}: ${editedPts.map(p => p.name || p.code).join(", ")}`)
+        // Added / Removed — grouped summary
+        if (addedPts.length)
+          changes.push(`Added ${addedPts.length} location${addedPts.length > 1 ? 's' : ''}: ${addedPts.map(p => p.name || p.code).join(", ")}`)
+        if (removedPts.length)
+          changes.push(`Removed ${removedPts.length} location${removedPts.length > 1 ? 's' : ''}: ${removedPts.map(p => p.name || p.code).join(", ")}`)
+
+        // Edited — per-field detail for each point
+        editedPts.forEach(p => {
+          const o = old.deliveryPoints.find(x => x.code === p.code)!
+          if (o.name !== p.name)
+            changes.push(`[${p.code}] Name: "${o.name}" → "${p.name}"`)
+          if (o.delivery !== p.delivery)
+            changes.push(`[${p.code}] Delivery: ${o.delivery} → ${p.delivery}`)
+          if (o.latitude !== p.latitude || o.longitude !== p.longitude)
+            changes.push(`[${p.code}] Coordinates updated (${o.latitude.toFixed(5)},${o.longitude.toFixed(5)} → ${p.latitude.toFixed(5)},${p.longitude.toFixed(5)})`)
+          const oldDescs = JSON.stringify((o.descriptions ?? []).slice().sort((a,b) => a.key.localeCompare(b.key)))
+          const newDescs = JSON.stringify((p.descriptions ?? []).slice().sort((a,b) => a.key.localeCompare(b.key)))
+          if (oldDescs !== newDescs)
+            changes.push(`[${p.code}] Description fields updated`)
+        })
+
+        // ── Reorder detection ────────────────────────────────────────
+        const commonOldOrder = old.deliveryPoints.filter(o => route.deliveryPoints.find(p => p.code === o.code) && !movedCodes.has(o.code)).map(o => o.code)
+        const commonNewOrder = route.deliveryPoints.filter(p => old.deliveryPoints.find(o => o.code === p.code) && !movedCodes.has(p.code)).map(p => p.code)
+        if (commonOldOrder.join(',') !== commonNewOrder.join(','))
+          changes.push(`Location order changed (${commonNewOrder.length} location${commonNewOrder.length !== 1 ? 's' : ''} reordered)`)
       }
       changes.forEach(desc => { appendChangelog(route.id, desc) })
     })
