@@ -27,7 +27,6 @@ type SectionId =
 const LS_DEFAULT_VIEW = "mapMarkerDefaultView"
 const MAP_FALLBACK = { lat: "3.0695500", lng: "101.5469179", zoom: "12" }
 
-const LS_ROUTE_COLORS = "fcalendar_route_colors"
 const DEFAULT_ROUTE_COLORS = ["#374151", "#7c3aed", "#0891b2", "#16a34a", "#dc2626", "#d97706"]
 
 // ─── Sidebar nav ──────────────────────────────────────────────────────────────
