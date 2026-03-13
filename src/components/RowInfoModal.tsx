@@ -38,13 +38,6 @@ interface RowInfoModalProps {
   onSave?: (updated: DeliveryPoint) => void
 }
 
-const DELIVERY_COLORS: Record<string, string> = {
-  Daily:   "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/20",
-  Weekday: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20",
-  "Alt 1": "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20",
-  "Alt 2": "bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/20",
-}
-
 export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: RowInfoModalProps) {
   const [drafts, setDrafts] = useState<{ key: string; value: string }[]>([])
   const [isEditing, setIsEditing] = useState(false)
