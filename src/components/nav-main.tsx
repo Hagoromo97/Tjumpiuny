@@ -85,7 +85,7 @@ export function NavMain({
               onOpenChange={hasChildren ? (open) => { if (!isSearching) setOpenItem(open ? item.title : null) } : undefined}
             >
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip={item.title} className="transition-colors duration-150">
+                <SidebarMenuButton asChild tooltip={item.title} className="font-semibold transition-colors duration-150">
                   <a
                     href={item.url}
                     onClick={(e) => {

@@ -2,6 +2,10 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+html {
+  zoom: 1.2;
+}
+
 /* ── Loading text shine animation ────────────────────────────────────────── */
 @keyframes loading-shine {
   0%   { background-position: -200% center; }

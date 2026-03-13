@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronRight, Moon, Pencil, Settings2, Sun } from "lucide-react"
+import { ChevronRight, Settings2 } from "lucide-react"
 import {
   Collapsible,
   CollapsibleContent,
@@ -17,8 +17,6 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
-import { Switch } from "@/components/ui/switch"
-import { useTheme } from "@/hooks/use-theme"
 
 interface SettingsItem {
   title: string
@@ -31,8 +29,6 @@ export function NavProjects({
   onSettingsOpenChange,
   currentPage,
   onNavigate,
-  isEditMode,
-  onEditModeToggle,
   searchQuery = "",
 }: {
   settingsItems: SettingsItem[]
@@ -40,11 +36,8 @@ export function NavProjects({
   onSettingsOpenChange: (open: boolean) => void
   currentPage?: string
   onNavigate?: (page: string) => void
-  isEditMode: boolean
-  onEditModeToggle: () => void
   searchQuery?: string
 }) {
-  const { mode, toggleMode } = useTheme()
   const isSearching = searchQuery.trim().length > 0
   const q = searchQuery.toLowerCase()
 
@@ -52,12 +45,9 @@ export function NavProjects({
     ? settingsItems.filter(i => i.title.toLowerCase().includes(q))
     : settingsItems
 
-  const showDarkMode  = !isSearching || "dark mode".includes(q) || "light mode".includes(q) || "appearance".includes(q)
-  const showEditMode  = !isSearching || "edit mode".includes(q) || "edit".includes(q)
-
   const showSettings = !isSearching
     ? true
-    : ("settings".includes(q) || filteredSettings.length > 0 || showDarkMode || showEditMode)
+    : ("settings".includes(q) || filteredSettings.length > 0)
 
   // Hide entire section if nothing matches
   if (isSearching && !showSettings) return null
@@ -76,7 +66,7 @@ export function NavProjects({
             <SidebarMenuItem>
               <SidebarMenuButton
                 tooltip="Settings"
-                className="transition-colors duration-150"
+                className="font-semibold transition-colors duration-150"
                 onClick={() => { if (!isSearching) onSettingsOpenChange(!settingsOpen) }}
               >
                 <Settings2 />
@@ -90,52 +80,6 @@ export function NavProjects({
               </CollapsibleTrigger>
               <CollapsibleContent className="nav-collapsible-content">
                 <SidebarMenuSub>
-
-                  {/* ── Dark Mode toggle ── */}
-                  {showDarkMode && (
-                    <SidebarMenuSubItem>
-                      <div className="flex items-center gap-2 px-2 py-1.5 w-full rounded-md hover:bg-sidebar-accent/50 transition-colors cursor-pointer" onClick={toggleMode}>
-                        {mode === "dark"
-                          ? <Moon className="size-3.5 shrink-0" style={{ color: "#EAB308" }} />
-                          : <Sun  className="size-3.5 shrink-0" style={{ color: "#F97316" }} />}
-                        <span className="flex-1 text-sm text-sidebar-foreground/90">Dark Mode</span>
-                        <span onClick={e => e.stopPropagation()}>
-                          <Switch
-                            size="sm"
-                            checked={mode === "dark"}
-                            onCheckedChange={toggleMode}
-                          />
-                        </span>
-                      </div>
-                    </SidebarMenuSubItem>
-                  )}
-
-                  {/* ── Edit Mode toggle ── */}
-                  {showEditMode && (
-                    <SidebarMenuSubItem>
-                      <div
-                        className={`flex items-center gap-2 px-2 py-1.5 w-full rounded-md transition-colors cursor-pointer ${
-                          isEditMode ? "text-primary hover:bg-primary/10" : "hover:bg-sidebar-accent/50"
-                        }`}
-                        onClick={onEditModeToggle}
-                      >
-                        <Pencil className={`size-3.5 shrink-0 ${isEditMode ? "text-primary" : ""}`} style={!isEditMode ? { color: "#6366F1" } : undefined} />
-                        <span className={`flex-1 text-sm ${isEditMode ? "text-primary font-medium" : "text-sidebar-foreground/90"}`}>Edit Mode</span>
-                        <span onClick={e => e.stopPropagation()}>
-                          <Switch
-                            size="sm"
-                            checked={isEditMode}
-                            onCheckedChange={onEditModeToggle}
-                          />
-                        </span>
-                      </div>
-                    </SidebarMenuSubItem>
-                  )}
-
-                  {/* ── Divider ── */}
-                  {showEditMode && filteredSettings.length > 0 && (
-                    <div className="mx-2 my-1 h-px bg-border/50" />
-                  )}
 
                   {/* ── Nav settings items ── */}
                   {filteredSettings.map(item => (

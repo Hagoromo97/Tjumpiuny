@@ -2,14 +2,18 @@
 
 import * as React from "react"
 import {
+  Moon,
   Package,
+  Pencil,
   Search,
+  Sun,
   X,
   Images,
   Layers,
   Users,
 } from "lucide-react"
 import { useEditMode } from "@/contexts/EditModeContext"
+import { useTheme } from "@/hooks/use-theme"
 import {
   Dialog,
   DialogContent,
@@ -19,6 +23,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
 
 import { NavMain } from "@/components/nav-main"
 import { NavProjects } from "@/components/nav-projects"
@@ -120,6 +126,7 @@ export function AppSidebar({
   const [openNavItem, setOpenNavItem] = React.useState<string | null>(null)
   const [unsavedDialogOpen, setUnsavedDialogOpen] = React.useState(false)
   const { isEditMode, setIsEditMode, hasUnsavedChanges, saveChanges, isSaving, discardChanges } = useEditMode()
+  const { mode, toggleMode } = useTheme()
 
   // Mutually exclusive: opening a Platform submenu closes Settings, and vice versa
   const handleNavItemChange = (item: string | null) => {
@@ -233,8 +240,6 @@ export function AppSidebar({
           onSettingsOpenChange={handleSettingsOpenChange}
           currentPage={currentPage}
           onNavigate={onNavigate}
-          isEditMode={isEditMode}
-          onEditModeToggle={handleEditModeToggle}
           searchQuery={searchQuery}
         />
         {noResults && (
@@ -246,6 +251,35 @@ export function AppSidebar({
         )}
       </SidebarContent>
       <SidebarFooter>
+        {/* Theme toggle */}
+        <div
+          className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-sidebar-accent/50 transition-colors cursor-pointer mx-1"
+          onClick={toggleMode}
+        >
+          {mode === "dark"
+            ? <Moon className="size-4 shrink-0" style={{ color: "#EAB308" }} />
+            : <Sun  className="size-4 shrink-0" style={{ color: "#F97316" }} />}
+          <span className="flex-1 text-sm font-medium text-sidebar-foreground/90">
+            {mode === "dark" ? "Dark Mode" : "Light Mode"}
+          </span>
+          <span onClick={e => e.stopPropagation()}>
+            <Switch size="sm" checked={mode === "dark"} onCheckedChange={toggleMode} />
+          </span>
+        </div>
+        {/* Edit Mode toggle */}
+        <div
+          className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors cursor-pointer mx-1 ${
+            isEditMode ? "text-primary hover:bg-primary/10" : "hover:bg-sidebar-accent/50"
+          }`}
+          onClick={handleEditModeToggle}
+        >
+          <Pencil className={`size-4 shrink-0 ${isEditMode ? "text-primary" : ""}`} style={!isEditMode ? { color: "#6366F1" } : undefined} />
+          <span className={`flex-1 text-sm font-medium ${isEditMode ? "text-primary" : "text-sidebar-foreground/90"}`}>Edit Mode</span>
+          <span onClick={e => e.stopPropagation()}>
+            <Switch size="sm" checked={isEditMode} onCheckedChange={handleEditModeToggle} />
+          </span>
+        </div>
+        <Separator className="mx-1" />
         <NavUser user={data.user} onNavigate={onNavigate} />
       </SidebarFooter>
     </Sidebar>
