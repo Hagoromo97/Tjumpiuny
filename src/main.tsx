@@ -13,8 +13,8 @@ import { FONT_OPTIONS } from "./hooks/use-theme"
 ;(function applyStoredDisplaySettings() {
   try {
     // App zoom
-    const zoom = localStorage.getItem("app-zoom")
-    if (zoom) document.documentElement.style.zoom = `${zoom}%`
+    const zoom = localStorage.getItem("app-zoom") ?? "120"
+    document.body.style.zoom = `${zoom}%`
 
     // Text size (rem base)
     const textSize = localStorage.getItem("text-size")

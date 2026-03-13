@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
-import { RefreshCw, Loader2, AlertCircle, AlertTriangle, Search, X, ChevronUp, ChevronDown as ChevronDownIcon, ChevronsUpDown, Filter, Save } from "lucide-react"
+import { RefreshCw, Loader2, AlertCircle, AlertTriangle, Search, X, ChevronUp, ChevronDown as ChevronDownIcon, ChevronsUpDown, Filter, Save, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface DeliveryPoint {
@@ -105,9 +106,11 @@ export function DeliveryTableDialog() {
   const [saveError, setSaveError]       = useState<string | null>(null)
 
   // Search & Filter
-  const [search, setSearch]           = useState("")
-  const [filterRoute, setFilterRoute] = useState("")
-  const [filterDelivery, setFilterDelivery] = useState("")
+  const [search, setSearch]                     = useState("")
+  const [filterRoutes, setFilterRoutes]         = useState<Set<string>>(new Set())
+  const [filterDeliveries, setFilterDeliveries] = useState<Set<string>>(new Set())
+  const [filterOpen, setFilterOpen]             = useState(false)
+  const [filterTab, setFilterTab]               = useState<"routes" | "delivery">("routes")
 
   // Sort — default: code asc
   const [sortKey, setSortKey] = useState<SortKey>("code")
@@ -212,8 +215,8 @@ export function DeliveryTableDialog() {
         p.delivery.toLowerCase().includes(q)
       )
     }
-    if (filterRoute)    list = list.filter(p => p.routeId === filterRoute)
-    if (filterDelivery) list = list.filter(p => p.delivery === filterDelivery)
+    if (filterRoutes.size > 0)     list = list.filter(p => filterRoutes.has(p.routeId))
+    if (filterDeliveries.size > 0) list = list.filter(p => filterDeliveries.has(p.delivery))
 
     return [...list].sort((a, b) => {
       let av = "", bv = ""
@@ -224,7 +227,7 @@ export function DeliveryTableDialog() {
       const cmp = av.localeCompare(bv, undefined, { numeric: true, sensitivity: "base" })
       return sortDir === "asc" ? cmp : -cmp
     })
-  }, [flat, search, filterRoute, filterDelivery, sortKey, sortDir])
+  }, [flat, search, filterRoutes, filterDeliveries, sortKey, sortDir])
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc")
@@ -284,7 +287,7 @@ export function DeliveryTableDialog() {
       </div>
 
       {/* ── Search + Filter Bar ─────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b bg-muted/20 shrink-0">
+      <div className="flex items-center gap-2 px-4 py-2 border-b bg-muted/20 shrink-0">
         <div className="relative flex-1 min-w-[140px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
           <Input
@@ -299,37 +302,103 @@ export function DeliveryTableDialog() {
             </button>
           )}
         </div>
-        <div className="flex items-center gap-1.5">
-          <Filter className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
-          <select
-            value={filterRoute}
-            onChange={e => setFilterRoute(e.target.value)}
-            className="h-8 rounded-lg border border-input bg-background px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-          >
-            <option value="">All Routes</option>
-            {routeOptions.map(([id, label]) => (
-              <option key={id} value={id}>{label}</option>
-            ))}
-          </select>
-        </div>
-        <select
-          value={filterDelivery}
-          onChange={e => setFilterDelivery(e.target.value)}
-          className="h-8 rounded-lg border border-input bg-background px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+        <button
+          onClick={() => setFilterOpen(true)}
+          className={cn(
+            "relative flex items-center gap-1.5 h-8 px-3 rounded-lg border text-xs font-medium transition-colors shrink-0",
+            (filterRoutes.size > 0 || filterDeliveries.size > 0)
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-input bg-background text-muted-foreground hover:text-foreground hover:bg-muted/40"
+          )}
         >
-          <option value="">All Delivery</option>
-          {deliveryOptions.map(d => {
-            const item = DELIVERY_MAP.get(d)
-            return <option key={d} value={d}>{item ? `${item.label} – ${item.description}` : d}</option>
-          })}
-        </select>
-        {(search || filterRoute || filterDelivery) && (
+          <Filter className="w-3.5 h-3.5" />
+          Filter
+          {(filterRoutes.size + filterDeliveries.size) > 0 && (
+            <span className="ml-0.5 flex items-center justify-center w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold">
+              {filterRoutes.size + filterDeliveries.size}
+            </span>
+          )}
+        </button>
+        {(search || filterRoutes.size > 0 || filterDeliveries.size > 0) && (
           <button
-            onClick={() => { setSearch(""); setFilterRoute(""); setFilterDelivery("") }}
-            className="text-xs text-muted-foreground hover:text-foreground underline"
+            onClick={() => { setSearch(""); setFilterRoutes(new Set()); setFilterDeliveries(new Set()) }}
+            className="text-xs text-muted-foreground hover:text-foreground underline shrink-0"
           >Clear</button>
         )}
       </div>
+
+      {/* ── Filter Modal ────────────────────────────────────────────── */}
+      <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
+        <DialogContent className="w-[92vw] max-w-sm p-0 gap-0 overflow-hidden rounded-2xl">
+          <DialogHeader className="px-5 pt-5 pb-3 text-center items-center">
+            <DialogTitle className="text-sm font-bold">Filter</DialogTitle>
+          </DialogHeader>
+          {/* Tabs */}
+          <div className="flex border-b border-border justify-center px-4">
+            {(["routes", "delivery"] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setFilterTab(tab)}
+                className={cn(
+                  "px-5 py-2.5 text-xs font-semibold capitalize border-b-2 transition-colors",
+                  filterTab === tab ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {tab === "routes" ? `Routes${filterRoutes.size > 0 ? ` (${filterRoutes.size})` : ""}` : `Delivery${filterDeliveries.size > 0 ? ` (${filterDeliveries.size})` : ""}`}
+              </button>
+            ))}
+          </div>
+          {/* Tab content */}
+          <div className="overflow-y-auto max-h-72 p-3 space-y-1.5">
+            {filterTab === "routes" && routeOptions.map(([id, label]) => {
+              const checked = filterRoutes.has(id)
+              return (
+                <button
+                  key={id}
+                  onClick={() => setFilterRoutes(prev => { const s = new Set(prev); checked ? s.delete(id) : s.add(id); return s })}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-xs text-left transition-colors",
+                    checked ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-muted/40"
+                  )}
+                >
+                  <span className={cn("flex shrink-0 items-center justify-center w-4 h-4 rounded border", checked ? "bg-primary border-primary" : "border-muted-foreground/40")}>
+                    {checked && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
+                  </span>
+                  <span className="font-medium">{label}</span>
+                </button>
+              )
+            })}
+            {filterTab === "delivery" && deliveryOptions.map(d => {
+              const item = DELIVERY_MAP.get(d)
+              const checked = filterDeliveries.has(d)
+              return (
+                <button
+                  key={d}
+                  onClick={() => setFilterDeliveries(prev => { const s = new Set(prev); checked ? s.delete(d) : s.add(d); return s })}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-xs text-left transition-colors",
+                    checked ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-muted/40"
+                  )}
+                >
+                  <span className={cn("flex shrink-0 items-center justify-center w-4 h-4 rounded border", checked ? "bg-primary border-primary" : "border-muted-foreground/40")}>
+                    {checked && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
+                  </span>
+                  <span className="font-medium">{item ? item.label : d}</span>
+                  {item && <span className="ml-auto text-muted-foreground text-[10px]">{item.description}</span>}
+                </button>
+              )
+            })}
+          </div>
+          {/* Footer */}
+          <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+            <button
+              onClick={() => { setFilterRoutes(new Set()); setFilterDeliveries(new Set()) }}
+              className="text-xs text-muted-foreground hover:text-foreground underline"
+            >Clear all</button>
+            <Button size="sm" onClick={() => setFilterOpen(false)} className="h-7 text-xs px-4">Done</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Loading ──────────────────────────────────────────────────── */}
       {loading && !flat.length && (

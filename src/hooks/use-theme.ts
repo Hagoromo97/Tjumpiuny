@@ -53,7 +53,7 @@ export function useTheme() {
     (localStorage.getItem("app-font") as AppFont) ?? "inter"
   )
   const [appZoom, setAppZoom] = useState<AppZoom>(() =>
-    (localStorage.getItem("app-zoom") as AppZoom) ?? "100"
+    (localStorage.getItem("app-zoom") as AppZoom) ?? "120"
   )
   const [textSize, setTextSize] = useState<TextSize>(() =>
     (localStorage.getItem("text-size") as TextSize) ?? "16"
