@@ -336,7 +336,7 @@ export function RouteList() {
       const res = await fetch('/api/routes')
       const data = await res.json()
       if (data.success && data.data.length > 0) {
-        setRoutes(data.data)
+        setRoutes(data.data.map((r: Route) => ({ ...r, color: r.color ?? null })))
         // Keep current route if it still exists, else go to first
         const stillExists = preserveCurrentId && data.data.some((r: Route) => r.id === preserveCurrentId)
         setCurrentRouteId(stillExists ? preserveCurrentId! : data.data[0].id)
@@ -1001,12 +1001,10 @@ export function RouteList() {
         {/* Page header */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-1">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <List className="size-4" />
-            </div>
+            <List className="size-4 shrink-0 text-primary" />
             <h2 className="text-base font-semibold tracking-tight text-foreground">Route List</h2>
           </div>
-          <p className="ml-11 text-sm text-muted-foreground leading-relaxed">
+          <p className="ml-7 text-sm text-muted-foreground leading-relaxed">
             {filteredRoutes.length} route{filteredRoutes.length !== 1 ? 's' : ''}
             {(filterRegion !== 'all' || filterShift !== 'all') && <span className="ml-1 text-primary font-medium">· filtered</span>}
           </p>
@@ -1423,14 +1421,6 @@ export function RouteList() {
                         ))}
                       </div>
                     </div>
-                    <div>
-                      <label style={{ fontSize: '0.67rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'hsl(var(--muted-foreground))', display: 'flex', alignItems: 'center', gap: 4, marginBottom: '0.4rem' }}>Card Color</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                        <input type="color" value={ep.color} onChange={e => setEditPanelState(prev => ({ ...prev, [route.id]: { ...ep, color: e.target.value } }))} style={{ width: 44, height: 36, borderRadius: 8, border: '1.5px solid hsl(var(--border))', cursor: 'pointer', padding: 2, background: 'hsl(var(--background))' }} />
-                        <span style={{ fontSize: '0.78rem', fontFamily: 'monospace', color: 'hsl(var(--muted-foreground))' }}>{ep.color}</span>
-                        <button onClick={() => setEditPanelState(prev => ({ ...prev, [route.id]: { ...ep, color: routeColorPalette[routeIndex % routeColorPalette.length] } }))} style={{ marginLeft: 'auto', fontSize: '0.68rem', padding: '0.2rem 0.55rem', borderRadius: 6, border: '1px solid hsl(var(--border))', background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))', cursor: 'pointer' }}>Reset</button>
-                      </div>
-                    </div>
                     {/* Labels manager */}
                     <div>
                       <label style={{ fontSize: '0.67rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'hsl(var(--muted-foreground))', display: 'flex', alignItems: 'center', gap: 4, marginBottom: '0.4rem' }}>Labels</label>
@@ -1485,7 +1475,7 @@ export function RouteList() {
                       <X style={{ width: 12, height: 12 }} /> Cancel
                     </button>
                     {(() => {
-                      const hasEditChanges = ep.name !== route.name || ep.code !== route.code || ep.shift !== route.shift || ep.color !== (route.color || markerColor) || ep.labels.join(',') !== (route.labels ?? ['Daily', 'Weekday', 'Alt 1', 'Alt 2']).join(',')
+                      const hasEditChanges = ep.name !== route.name || ep.code !== route.code || ep.shift !== route.shift || ep.labels.join(',') !== (route.labels ?? ['Daily', 'Weekday', 'Alt 1', 'Alt 2']).join(',')
                       return (
                         <button
                           disabled={!hasEditChanges}
@@ -1842,15 +1832,15 @@ export function RouteList() {
                     
                     {/* Action Buttons - Show when rows are selected in Edit Mode */}
                     {selectedRows.length > 0 && isEditMode && (
-                      <div className="border-t border-border px-4 py-2.5 flex items-center justify-between bg-primary/5 shrink-0">
+                      <div className="border-t border-border px-4 py-2.5 flex items-center justify-between shrink-0">
                         <span className="text-xs font-semibold text-primary">
                           {selectedRows.length} row{selectedRows.length > 1 ? 's' : ''} selected
                         </span>
                         <div className="flex gap-2">
-                          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setSelectedRows([])}>
+                          <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setSelectedRows([])}>
                             <X className="size-3 mr-1" />Deselect
                           </Button>
-                          <Button size="sm" className="h-7 text-xs" onClick={handleDoneClick}>
+                          <Button variant="ghost" size="sm" className="h-7 text-xs text-green-600 hover:text-green-600 hover:bg-green-500/10" onClick={handleDoneClick}>
                             <Check className="size-3 mr-1" />Action
                           </Button>
                         </div>

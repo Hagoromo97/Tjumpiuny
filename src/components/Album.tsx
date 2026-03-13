@@ -174,12 +174,10 @@ export function Album() {
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-1">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <ImageIcon className="size-4" />
-              </div>
+              <ImageIcon className="size-4 shrink-0 text-primary" />
               <h2 className="text-base font-semibold tracking-tight text-foreground">Album</h2>
             </div>
-            <p className="ml-11 text-sm text-muted-foreground leading-relaxed">
+            <p className="ml-7 text-sm text-muted-foreground leading-relaxed">
               {allImages.length} images across {pages.length} pages
             </p>
           </div>

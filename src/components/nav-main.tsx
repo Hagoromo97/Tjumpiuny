@@ -72,13 +72,7 @@ export function NavMain({
     <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
       <SidebarMenu>
-        {isSearching && items.length === 0 ? (
-          <div className="flex flex-col items-center gap-1.5 py-6 px-3 text-center animate-in fade-in duration-200">
-            <span className="text-xl">🔍</span>
-            <p className="text-xs font-medium text-muted-foreground">No results found</p>
-            <p className="text-[11px] text-muted-foreground/60">Try a different keyword</p>
-          </div>
-        ) : (
+        {isSearching && items.length === 0 ? null : (
         items.map((item) => {
           const hasChildren = !!item.items?.length
           const isOpen = isSearching ? true : openItem === item.title

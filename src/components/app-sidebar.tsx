@@ -154,6 +154,19 @@ export function AppSidebar({
       .filter(Boolean) as typeof data.navMain
   }, [searchQuery])
 
+  const settingsHasMatch = React.useMemo(() => {
+    if (!searchQuery.trim()) return true
+    const q = searchQuery.toLowerCase()
+    return (
+      "settings".includes(q) ||
+      data.settingsItems.some(i => i.title.toLowerCase().includes(q)) ||
+      "dark mode".includes(q) || "light mode".includes(q) || "appearance".includes(q) ||
+      "edit mode".includes(q) || "edit".includes(q)
+    )
+  }, [searchQuery])
+
+  const noResults = searchQuery.trim().length > 0 && filteredNavMain.length === 0 && !settingsHasMatch
+
   const handleNavClick = (_itemTitle: string) => {
     // top-level items with children just expand/collapse — no navigation
   }
@@ -178,8 +191,8 @@ export function AppSidebar({
                   <Layers className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">FCalendar</span>
-                  <span className="truncate text-xs">Your Schedule</span>
+                  <span className="truncate font-medium">Data Brutal</span>
+                  <span className="truncate text-xs">Info for driver bejad</span>
                 </div>
               </a>
             </SidebarMenuButton>
@@ -224,6 +237,13 @@ export function AppSidebar({
           onEditModeToggle={handleEditModeToggle}
           searchQuery={searchQuery}
         />
+        {noResults && (
+          <div className="flex flex-col items-center gap-1.5 py-6 px-3 text-center animate-in fade-in duration-200">
+            <span className="text-xl">🔍</span>
+            <p className="text-xs font-medium text-muted-foreground">No results found</p>
+            <p className="text-[11px] text-muted-foreground/60">Try a different keyword</p>
+          </div>
+        )}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} onNavigate={onNavigate} />

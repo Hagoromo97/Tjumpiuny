@@ -8,6 +8,7 @@ import {
   Users,
   Clock,
   Loader2,
+  Settings2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,9 +30,17 @@ interface Shift {
   resourceId: string
   title: string
   date: string   // "YYYY-MM-DD"
-  startHour: number  // 0-23
-  endHour: number    // 1-24
+  startHour: number  // 0-23, supports .5 for :30
+  endHour: number    // 1-24.5
   color: string
+}
+
+interface RouteRef {
+  id: string
+  name: string
+  code: string
+  shift: string  // "AM" | "PM" | etc
+  color?: string
 }
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
@@ -49,20 +58,31 @@ const HOUR_LABELS = Array.from({ length: 24 }, (_, i) => {
   return `${i - 12} PM`
 })
 
+// Half-hour options for shift time selects
+const HOUR_OPTIONS = Array.from({ length: 49 }, (_, i) => {
+  const h = i * 0.5
+  const hInt = Math.floor(h)
+  const mins = h % 1 !== 0 ? "30" : "00"
+  if (h === 0)    return { value: 0,    label: "12:00 AM" }
+  if (h === 0.5)  return { value: 0.5,  label: "12:30 AM" }
+  if (h < 12)     return { value: h,    label: `${hInt}:${mins} AM` }
+  if (h === 12)   return { value: 12,   label: "12:00 PM" }
+  if (h === 12.5) return { value: 12.5, label: "12:30 PM" }
+  if (h < 24)     return { value: h,    label: `${hInt - 12}:${mins} PM` }
+  if (h === 24)   return { value: 24,   label: "12:00 AM (+1)" }
+  return { value: 24.5, label: "12:30 AM (+1)" }
+})
+
+// Returns {startHour, endHour} preset based on route shift type
+function getShiftPreset(shiftType: string): { startHour: number; endHour: number } {
+  if (shiftType?.toUpperCase() === "AM") return { startHour: 4, endHour: 12.5 }
+  if (shiftType?.toUpperCase() === "PM") return { startHour: 16, endHour: 24.5 }
+  return { startHour: 8, endHour: 16 }
+}
+
 const RESOURCE_COLORS = [
   "#3B82F6", "#F97316", "#22C55E", "#A855F7",
   "#EC4899", "#EAB308", "#14B8A6", "#EF4444",
-]
-
-const SHIFT_COLORS = [
-  { label: "Blue",   value: "#3B82F6" },
-  { label: "Green",  value: "#22C55E" },
-  { label: "Orange", value: "#F97316" },
-  { label: "Purple", value: "#A855F7" },
-  { label: "Pink",   value: "#EC4899" },
-  { label: "Teal",   value: "#14B8A6" },
-  { label: "Red",    value: "#EF4444" },
-  { label: "Yellow", value: "#EAB308" },
 ]
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -92,10 +112,12 @@ function isSameDay(a: Date, b: Date) {
 }
 
 function formatHour(h: number) {
-  if (h === 0) return "12:00 AM"
-  if (h < 12) return `${h}:00 AM`
-  if (h === 12) return "12:00 PM"
-  return `${h - 12}:00 PM`
+  const mins = h % 1 !== 0 ? "30" : "00"
+  if (h === 0)    return `12:${mins} AM`
+  if (h < 12)     return `${Math.floor(h)}:${mins} AM`
+  if (h === 12)   return `12:${mins} PM`
+  if (h < 24)     return `${Math.floor(h) - 12}:${mins} PM`
+  return `12:${mins} AM`  // 24 / 24.5 = next day
 }
 
 // ─── API HELPERS ──────────────────────────────────────────────────────────────
@@ -213,9 +235,16 @@ function makeSeedShifts(resources: Resource[]): Shift[] {
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 
-type ViewMode = "week" | "day"
+type ViewMode = "month" | "week"
 
-export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMode }) {
+function getMonthDates(baseDate: Date): Date[] {
+  const year = baseDate.getFullYear()
+  const month = baseDate.getMonth()
+  const days = new Date(year, month + 1, 0).getDate()
+  return Array.from({ length: days }, (_, i) => new Date(year, month, i + 1))
+}
+
+export function Rooster({ viewMode: viewModeProp = "month" }: { viewMode?: ViewMode }) {
   const today = new Date()
   const { isEditMode } = useEditMode()
 
@@ -225,6 +254,7 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
   const [currentDate, setCurrentDate] = useState(new Date())
   const [resources, setResources] = useState<Resource[]>([])
   const [shifts, setShifts] = useState<Shift[]>([])
+  const [routes, setRoutes] = useState<RouteRef[]>([])
   const [loading, setLoading] = useState(true)
 
   // Dialogs
@@ -242,10 +272,20 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
     resource?: Resource
   }>({ open: false, mode: "add" })
 
+  // Manage modal
+  const [manageOpen, setManageOpen] = useState(false)
+  const [manageTab, setManageTab] = useState<"staff" | "shift">("staff")
+
   // ── Load from DB on mount ──────────────────────────────────────────────────
   const loadData = useCallback(async () => {
     setLoading(true)
     const { resources: dbRes, shifts: dbShifts } = await apiFetchAll()
+    // Also fetch routes for shift type select
+    try {
+      const rr = await fetch("/api/routes")
+      const rd = await rr.json()
+      if (rd.success) setRoutes(rd.data as RouteRef[])
+    } catch { /* ignore */ }
     if (dbRes.length === 0) {
       // Seed default data on first launch
       for (const r of SEED_RESOURCES) await apiSaveResource(r)
@@ -283,9 +323,8 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
   const weekDates = useMemo(() => getWeekDates(currentDate), [currentDate])
 
   const headerLabel = useMemo(() => {
-    if (viewMode === "day") {
-      const d = currentDate
-      return `${DAYS_SHORT[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`
+    if (viewMode === "month") {
+      return `${MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`
     }
     const start = weekDates[0]
     const end = weekDates[6]
@@ -299,7 +338,7 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
   // Navigation
   const navigate = (dir: -1 | 1) => {
     const d = new Date(currentDate)
-    if (viewMode === "day") d.setDate(d.getDate() + dir)
+    if (viewMode === "month") d.setMonth(d.getMonth() + dir)
     else d.setDate(d.getDate() + dir * 7)
     setCurrentDate(d)
   }
@@ -307,15 +346,14 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
   const goToday = () => setCurrentDate(new Date())
 
   // Column dates for current view
-  const colDates: Date[] = viewMode === "week"
-    ? weekDates
-    : [currentDate]
+  const monthDates = useMemo(() => getMonthDates(currentDate), [currentDate])
+  const colDates: Date[] = viewMode === "month" ? monthDates : weekDates
 
   // ── Shift CRUD ────────────────────────────────────────────────────────────
 
   const openAddShift = (resourceId?: string, date?: string) => {
     setShiftForm({
-      title: "Morning",
+      title: "",
       resourceId: resourceId ?? resources[0]?.id ?? "",
       date: date ?? toDateKey(currentDate),
       startHour: 8,
@@ -338,7 +376,7 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
   }
 
   const saveShift = async () => {
-    if (!shiftForm.title.trim()) { toast.error("Please enter a shift title"); return }
+    if (!shiftForm.title.trim()) { toast.error("Please select a route"); return }
     if (shiftForm.endHour <= shiftForm.startHour) { toast.error("End time must be after start time"); return }
 
     if (shiftDialog.mode === "add") {
@@ -382,7 +420,7 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
   const saveResource = async () => {
     if (!resForm.name.trim()) { toast.error("Please enter a name"); return }
     if (resourceDialog.mode === "add") {
-      const nr: Resource = { id: `r${Date.now()}`, name: resForm.name.trim(), role: resForm.role.trim(), color: resForm.color }
+      const nr: Resource = { id: `r${Date.now()}`, name: resForm.name.trim(), role: resForm.role.trim(), color: RESOURCE_COLORS[resources.length % RESOURCE_COLORS.length] }
       const ok = await apiSaveResource(nr)
       if (ok) { setResources(prev => [...prev, nr]); toast.success("Staff added") }
       else toast.error("Failed to save staff")
@@ -437,20 +475,12 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
         <h2 className="text-sm font-bold flex-1 truncate">{headerLabel}</h2>
 
         {isEditMode && (
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              onClick={openAddResource}
-              className="flex items-center gap-1 h-7 px-2.5 rounded-lg border border-border bg-card hover:bg-muted text-[11px] font-semibold transition-colors"
-            >
-              <Users className="size-3" />Staff
-            </button>
-            <button
-              onClick={() => openAddShift()}
-              className="flex items-center gap-1 h-7 px-2.5 rounded-lg bg-primary text-primary-foreground text-[11px] font-semibold hover:bg-primary/90 transition-colors shadow-sm"
-            >
-              <Plus className="size-3" />Shift
-            </button>
-          </div>
+          <button
+            onClick={() => { setManageOpen(true); setManageTab("staff") }}
+            className="flex items-center gap-1 h-7 px-2.5 rounded-lg border border-border bg-card hover:bg-muted text-[11px] font-semibold transition-colors shrink-0"
+          >
+            <Settings2 className="size-3" />Manage
+          </button>
         )}
       </div>
 
@@ -494,11 +524,11 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
                     <th
                       key={toDateKey(date)}
                       className={`sticky top-0 z-20 border-b border-r border-border text-center py-2.5 px-2 font-normal ${
-                        isToday ? "bg-primary/[0.06]" : isWeekend ? "bg-muted/20" : "bg-card"
+                        isToday ? "bg-primary/[0.06]" : "bg-card"
                       }`}
                     >
                       <div className={`text-[9px] font-bold uppercase tracking-widest mb-1.5 ${
-                        isToday ? "text-primary" : isWeekend ? "text-muted-foreground/50" : "text-muted-foreground"
+                        isToday ? "text-primary" : isWeekend ? "text-red-500" : "text-muted-foreground"
                       }`}>
                         {DAYS_SHORT[date.getDay()]}
                       </div>
@@ -506,7 +536,7 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
                         isToday
                           ? "bg-primary text-primary-foreground shadow-sm"
                           : isWeekend
-                          ? "text-muted-foreground/50"
+                          ? "text-red-500"
                           : "text-foreground/80"
                       }`}>
                         {date.getDate()}
@@ -568,7 +598,7 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
                         <td
                           key={dateKey}
                           className={`border-b border-r border-border align-top p-1.5 transition-colors ${
-                            isToday ? "bg-primary/[0.02]" : isWeekend ? "bg-muted/10" : ""
+                            isToday ? "bg-primary/[0.02]" : ""
                           } ${isEditMode ? "cursor-pointer hover:bg-muted/25" : ""}`}
                           style={{ minHeight: "72px" }}
                           onClick={() => { if (isEditMode) openAddShift(resource.id, dateKey) }}
@@ -578,6 +608,7 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
                               <ShiftBlock
                                 key={shift.id}
                                 shift={shift}
+                                shiftType={routes.find(r => r.name === shift.title)?.shift ?? ""}
                                 isEditMode={isEditMode}
                                 onEdit={() => openEditShift(shift)}
                               />
@@ -599,9 +630,134 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
         )}
       </div>
 
+      {/* ── Manage Modal ─────────────────────────────────────────────────────── */}
+      <Dialog open={manageOpen} onOpenChange={setManageOpen}>
+        <DialogContent className="max-w-md rounded-2xl p-0 overflow-hidden gap-0" onOpenAutoFocus={e => e.preventDefault()}>
+          <DialogHeader className="px-5 pt-5 pb-3">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Settings2 className="size-4 text-primary" />Manage
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* Tabs */}
+          <div className="flex border-b border-border px-5">
+            {(["staff", "shift"] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setManageTab(tab)}
+                className={`h-9 px-4 text-xs font-semibold border-b-2 transition-colors ${
+                  manageTab === tab
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {tab === "staff"
+                  ? <span className="flex items-center gap-1.5"><Users className="size-3" />Staff</span>
+                  : <span className="flex items-center gap-1.5"><Clock className="size-3" />Shift</span>}
+              </button>
+            ))}
+          </div>
+
+          <div className="px-5 py-4 flex flex-col gap-4">
+            {/* ── Staff Tab ── */}
+            {manageTab === "staff" && (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium">Name</label>
+                  <Input placeholder="e.g. Ahmad Faris" value={resForm.name} onChange={e => setResForm(p => ({ ...p, name: e.target.value }))} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium">Role</label>
+                  <Input placeholder="e.g. Driver, Operator" value={resForm.role} onChange={e => setResForm(p => ({ ...p, role: e.target.value }))} />
+                </div>
+                <div className="flex justify-end pt-1">
+                  <Button size="sm" onClick={async () => {
+                    if (!resForm.name.trim()) { toast.error("Please enter a name"); return }
+                    const nr: Resource = { id: `r${Date.now()}`, name: resForm.name.trim(), role: resForm.role.trim(), color: RESOURCE_COLORS[resources.length % RESOURCE_COLORS.length] }
+                    const ok = await apiSaveResource(nr)
+                    if (ok) {
+                      setResources(prev => [...prev, nr])
+                      setResForm({ name: "", role: "", color: "" })
+                      toast.success("Staff added")
+                    } else toast.error("Failed to save staff")
+                  }}><Plus className="size-3.5 mr-1" />Add Staff</Button>
+                </div>
+              </>
+            )}
+
+            {/* ── Shift Tab ── */}
+            {manageTab === "shift" && (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium">Route</label>
+                  <select
+                    value={shiftForm.title}
+                    onChange={e => {
+                      const selected = routes.find(r => r.name === e.target.value)
+                      const preset = getShiftPreset(selected?.shift ?? "")
+                      setShiftForm(p => ({ ...p, title: e.target.value, color: selected?.color || p.color, ...preset }))
+                    }}
+                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="">-- Pilih Route --</option>
+                    {routes.map(r => (
+                      <option key={r.id} value={r.name}>{r.name}{r.code ? ` (${r.code})` : ""} — {r.shift}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium">Staff</label>
+                  <select value={shiftForm.resourceId} onChange={e => setShiftForm(p => ({ ...p, resourceId: e.target.value }))} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                    {resources.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium">Date</label>
+                  <div className="relative w-fit">
+                    <input
+                      type="date"
+                      value={shiftForm.date}
+                      onChange={e => setShiftForm(p => ({ ...p, date: e.target.value }))}
+                      className="h-9 rounded-md border border-input bg-background pl-3 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring [color-scheme:light] dark:[color-scheme:dark]"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium">Start</label>
+                    <select value={shiftForm.startHour} onChange={e => setShiftForm(p => ({ ...p, startHour: Number(e.target.value) }))} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                      {HOUR_OPTIONS.slice(0, 48).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium">End</label>
+                    <select value={shiftForm.endHour} onChange={e => setShiftForm(p => ({ ...p, endHour: Number(e.target.value) }))} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                      {HOUR_OPTIONS.slice(1).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="flex justify-end pt-1">
+                  <Button size="sm" onClick={async () => {
+                    if (!shiftForm.title.trim()) { toast.error("Please select a route"); return }
+                    if (shiftForm.endHour <= shiftForm.startHour) { toast.error("End time must be after start time"); return }
+                    const newShift: Shift = { id: `s${Date.now()}`, ...shiftForm, title: shiftForm.title.trim() }
+                    const ok = await apiSaveShift(newShift)
+                    if (ok) {
+                      setShifts(prev => [...prev, newShift])
+                      setShiftForm(p => ({ ...p, title: "Morning" }))
+                      toast.success("Shift added")
+                    } else toast.error("Failed to save shift")
+                  }}><Plus className="size-3.5 mr-1" />Add Shift</Button>
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* ── Shift Dialog ─────────────────────────────────────────────────────── */}
       <Dialog open={shiftDialog.open} onOpenChange={o => !o && setShiftDialog(p => ({ ...p, open: false }))}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" onOpenAutoFocus={e => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Clock className="size-4 text-primary" />
@@ -610,8 +766,21 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
           </DialogHeader>
           <div className="flex flex-col gap-4 py-2">
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Shift Name</label>
-              <Input placeholder="e.g. Morning, Afternoon, Night" value={shiftForm.title} onChange={e => setShiftForm(p => ({ ...p, title: e.target.value }))} />
+              <label className="text-sm font-medium">Route</label>
+              <select
+                value={shiftForm.title}
+                onChange={e => {
+                  const selected = routes.find(r => r.name === e.target.value)
+                  const preset = getShiftPreset(selected?.shift ?? "")
+                  setShiftForm(p => ({ ...p, title: e.target.value, color: selected?.color || p.color, ...preset }))
+                }}
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">-- Pilih Route --</option>
+                {routes.map(r => (
+                  <option key={r.id} value={r.name}>{r.name}{r.code ? ` (${r.code})` : ""} — {r.shift}</option>
+                ))}
+              </select>
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium">Staff</label>
@@ -621,32 +790,27 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium">Date</label>
-              <Input type="date" value={shiftForm.date} onChange={e => setShiftForm(p => ({ ...p, date: e.target.value }))} />
+              <div className="relative w-fit">
+                <input
+                  type="date"
+                  value={shiftForm.date}
+                  onChange={e => setShiftForm(p => ({ ...p, date: e.target.value }))}
+                  className="h-9 rounded-md border border-input bg-background pl-3 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring [color-scheme:light] dark:[color-scheme:dark]"
+                />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium">Start</label>
                 <select value={shiftForm.startHour} onChange={e => setShiftForm(p => ({ ...p, startHour: Number(e.target.value) }))} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                  {HOUR_LABELS.map((lbl, i) => <option key={i} value={i}>{lbl}</option>)}
+                  {HOUR_OPTIONS.slice(0, 48).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium">End</label>
                 <select value={shiftForm.endHour} onChange={e => setShiftForm(p => ({ ...p, endHour: Number(e.target.value) }))} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                  {HOUR_LABELS.map((lbl, i) => <option key={i + 1} value={i + 1}>{lbl}</option>)}
+                  {HOUR_OPTIONS.slice(1).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
-              </div>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Color</label>
-              <div className="flex flex-wrap gap-2">
-                {SHIFT_COLORS.map(c => (
-                  <button key={c.value} onClick={() => setShiftForm(p => ({ ...p, color: c.value }))} title={c.label}
-                    className={`w-7 h-7 rounded-full flex items-center justify-center ring-2 ring-offset-2 transition-all ${shiftForm.color === c.value ? "ring-foreground scale-110" : "ring-transparent hover:ring-border"}`}
-                    style={{ backgroundColor: c.value }}>
-                    {shiftForm.color === c.value && <svg className="size-3.5 text-white" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3,8 7,12 13,4" /></svg>}
-                  </button>
-                ))}
               </div>
             </div>
           </div>
@@ -668,7 +832,7 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
 
       {/* ── Resource Dialog ──────────────────────────────────────────────────── */}
       <Dialog open={resourceDialog.open} onOpenChange={o => !o && setResourceDialog(p => ({ ...p, open: false }))}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm" onOpenAutoFocus={e => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Users className="size-4 text-primary" />
@@ -683,18 +847,6 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium">Role</label>
               <Input placeholder="e.g. Driver, Operator" value={resForm.role} onChange={e => setResForm(p => ({ ...p, role: e.target.value }))} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Color</label>
-              <div className="flex flex-wrap gap-2">
-                {RESOURCE_COLORS.map(c => (
-                  <button key={c} onClick={() => setResForm(p => ({ ...p, color: c }))}
-                    className={`w-7 h-7 rounded-full flex items-center justify-center ring-2 ring-offset-2 transition-all ${resForm.color === c ? "ring-foreground scale-110" : "ring-transparent hover:ring-border"}`}
-                    style={{ backgroundColor: c }}>
-                    {resForm.color === c && <svg className="size-3.5 text-white" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3,8 7,12 13,4" /></svg>}
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
           <div className="flex items-center justify-between gap-2 pt-2">
@@ -720,10 +872,12 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
 
 function ShiftBlock({
   shift,
+  shiftType,
   isEditMode,
   onEdit,
 }: {
   shift: Shift
+  shiftType: string
   isEditMode: boolean
   onEdit: () => void
 }) {
@@ -738,16 +892,17 @@ function ShiftBlock({
       }`}
       style={{ backgroundColor: `${shift.color}12`, border: `1px solid ${shift.color}30` }}
       onClick={e => { e.stopPropagation(); if (isEditMode) onEdit() }}
-      title={`${shift.title}: ${startLabel} – ${endLabel} (${duration}h)`}
+      title={`${shift.title}${shiftType ? ` — ${shiftType}` : ""}: ${startLabel} – ${endLabel} (${duration}h)`}
     >
       <div className="h-[3px] w-full" style={{ backgroundColor: shift.color }} />
-      <div className="px-2 py-1.5">
-        <div className="text-[10px] font-bold leading-tight whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: shift.color }}>
-          {shift.title}
-        </div>
-        {isEditMode && (
-          <div className="text-[9px] leading-tight text-muted-foreground mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis">
-            {startLabel} – {endLabel} · {duration}h
+      <div className="px-2 py-1.5 flex flex-col items-center text-center">
+        {isEditMode ? (
+          <div className="text-[9px] font-semibold leading-tight whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: shift.color }}>
+            {startLabel} – {endLabel}
+          </div>
+        ) : (
+          <div className="text-[10px] font-bold leading-tight whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: shift.color }}>
+            {shift.title}{shiftType ? ` — ${shiftType}` : ""}
           </div>
         )}
       </div>

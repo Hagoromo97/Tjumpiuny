@@ -1,9 +1,9 @@
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import type { ReactNode } from "react"
 import {
   User, Bell, Lock, Globe, Mail, Phone, Save, Shield,
   Eye, EyeOff, Check, Type, Copy,
-  AlertTriangle, Navigation, Palette, Plus, Trash2,
+  AlertTriangle, Navigation, Palette,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -36,13 +36,13 @@ function SectionHeader({ icon, title, description }: { icon: ReactNode; title: s
   return (
     <div className="mb-7">
       <div className="flex items-center gap-3 mb-1">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <div className="flex shrink-0 items-center justify-center text-primary">
           {icon}
         </div>
         <h2 className="text-base font-semibold tracking-tight text-foreground">{title}</h2>
       </div>
       {description && (
-        <p className="ml-11 text-sm text-muted-foreground leading-relaxed">{description}</p>
+        <p className="ml-7 text-sm text-muted-foreground leading-relaxed">{description}</p>
       )}
       <Separator className="mt-4" />
     </div>
@@ -77,6 +77,18 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
   const [security, setSecurity] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" })
   const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false })
 
+  // ImgBB API key
+  const LS_IMGBB_KEY = "app_imgbb_api_key"
+  const [imgbbKey, setImgbbKey] = useState(() => localStorage.getItem("app_imgbb_api_key") ?? "")
+  const [showImgbbKey, setShowImgbbKey] = useState(false)
+  const [imgbbKeySaved, setImgbbKeySaved] = useState(false)
+
+  const handleSaveImgbbKey = () => {
+    localStorage.setItem(LS_IMGBB_KEY, imgbbKey)
+    setImgbbKeySaved(true)
+    setTimeout(() => setImgbbKeySaved(false), 2000)
+  }
+
   // Map state
   const [mapLat,  setMapLat]  = useState(() => { try { const v = localStorage.getItem(LS_DEFAULT_VIEW); if (v) return String(JSON.parse(v).center[0]) } catch { /**/ } return MAP_FALLBACK.lat })
   const [mapLng,  setMapLng]  = useState(() => { try { const v = localStorage.getItem(LS_DEFAULT_VIEW); if (v) return String(JSON.parse(v).center[1]) } catch { /**/ } return MAP_FALLBACK.lng })
@@ -97,6 +109,45 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
     window.dispatchEvent(new Event('fcalendar_route_colors_changed'))
     // force re-render to update dirty flag
     setRouteColors(c => [...c])
+  }
+
+  // Per-route colors (fetched from API)
+  type RouteColorEntry = { id: string; name: string; code: string; color: string }
+  const [routesList, setRoutesList] = useState<RouteColorEntry[]>([])
+  const [routesListLoading, setRoutesListLoading] = useState(false)
+  const [routesListDirty, setRoutesListDirty] = useState(false)
+  const routesListOriginalRef = useRef<RouteColorEntry[]>([])
+
+  useEffect(() => {
+    if (active !== 'route-colors') return
+    setRoutesListLoading(true)
+    setRoutesListDirty(false)
+    fetch('/api/routes')
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          const mapped: RouteColorEntry[] = data.data.map((r: RouteColorEntry & { color?: string }, i: number) => ({
+            id: r.id, name: r.name, code: r.code,
+            color: r.color || DEFAULT_ROUTE_COLORS[i % DEFAULT_ROUTE_COLORS.length],
+          }))
+          setRoutesList(mapped)
+          routesListOriginalRef.current = mapped.map(r => ({ ...r }))
+        }
+      })
+      .catch(console.error)
+      .finally(() => setRoutesListLoading(false))
+  }, [active])
+
+  const handleSaveRouteColorsList = async () => {
+    const dirty = routesList.filter((r, i) => r.color !== routesListOriginalRef.current[i]?.color)
+    await Promise.all(dirty.map(r => fetch('/api/routes', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: r.id, color: r.color }),
+    })))
+    routesListOriginalRef.current = routesList.map(r => ({ ...r }))
+    setRoutesListDirty(false)
+    window.dispatchEvent(new Event('fcalendar_route_colors_changed'))
   }
 
   const handleSaveMap = () => {
@@ -144,7 +195,7 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
                           className="pr-9"
                         />
                       ) : (
-                        <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2 min-h-9">
+                        <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 h-9">
                           <span className="text-sm truncate">{profile[key] || <span className="text-muted-foreground italic">—</span>}</span>
                           <button
                             type="button"
@@ -305,7 +356,6 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
 
       // ── Route Colors ──────────────────────────────────────────────────────
       case "route-colors": {
-        // helper: pick white or black text based on bg brightness
         const fgFor = (hex: string) => {
           const r = parseInt(hex.slice(1, 3), 16)
           const g = parseInt(hex.slice(3, 5), 16)
@@ -315,104 +365,80 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
 
         return (
           <div>
-            <SectionHeader icon={<Palette className="size-4" />} title="Route Card Colours" description="Warna dikitar secara berurutan pada setiap kad route yang tiada warna khas." />
+            <SectionHeader icon={<Palette className="size-4" />} title="Route Card Colours" description="Set a colour for each route. It applies to the route card, map marker, and rooster schedule." />
 
-            {/* Palette preview strip */}
-            <div className="flex h-8 rounded-lg overflow-hidden border border-border shadow-sm mb-4">
-              {routeColors.map((c, i) => (
-                <div key={i} className="flex-1" style={{ background: c }} title={`Route ${i + 1}: ${c}`} />
-              ))}
-            </div>
-
-            {/* ── Colour rows ── */}
-            <div className="space-y-2">
-              {routeColors.map((color, idx) => (
-                <div
-                  key={idx}
-                  className="group flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm hover:border-primary/30 transition-colors"
-                >
-                  {/* Large swatch — click to open picker */}
-                  <label className="relative cursor-pointer shrink-0" title="Klik untuk tukar warna">
-                    <div
-                      className="h-10 w-10 rounded-lg shadow-inner ring-2 ring-black/10 transition-transform group-hover:scale-105"
-                      style={{ background: color }}
-                    />
-                    <input
-                      type="color"
-                      value={color}
-                      onChange={e => setRouteColors(prev => prev.map((c, i) => i === idx ? e.target.value : c))}
-                      className="sr-only"
-                    />
-                  </label>
-
-                  {/* Route label pill */}
-                  <div
-                    className="shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wide"
-                    style={{ background: color, color: fgFor(color) }}
-                  >
-                    Route {idx + 1}
-                  </div>
-
-                  {/* Hex code */}
-                  <span className="flex-1 font-mono text-sm font-medium text-foreground tracking-wide">
-                    {color.toUpperCase()}
-                  </span>
-
-                  {/* Edit button */}
-                  <label
-                    className="relative cursor-pointer flex h-8 items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                    title="Tukar warna"
-                  >
-                    <Palette className="size-3.5" />
-                    <span className="hidden sm:inline">Edit</span>
-                    <input
-                      type="color"
-                      value={color}
-                      onChange={e => setRouteColors(prev => prev.map((c, i) => i === idx ? e.target.value : c))}
-                      className="sr-only"
-                    />
-                  </label>
-
-                  {/* Delete button — only visible when >1 colour */}
-                  {routeColors.length > 1 && (
-                    <button
-                      onClick={() => setRouteColors(prev => prev.filter((_, i) => i !== idx))}
-                      className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground/50 hover:bg-destructive/10 hover:text-destructive transition-colors"
-                      title="Buang warna"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
-                  )}
+            {routesListLoading ? (
+              <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">Loading routes...</div>
+            ) : routesList.length === 0 ? (
+              <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">No routes found.</div>
+            ) : (
+              <>
+                {/* Preview strip */}
+                <div className="flex h-8 rounded-lg overflow-hidden border border-border shadow-sm mb-4">
+                  {routesList.map(r => (
+                    <div key={r.id} className="flex-1" style={{ background: r.color }} title={`${r.name}: ${r.color}`} />
+                  ))}
                 </div>
-              ))}
 
-              {/* Add colour row */}
-              {routeColors.length < 12 && (
-                <button
-                  onClick={() => setRouteColors(prev => [...prev, '#6366f1'])}
-                  className="flex w-full items-center gap-3 rounded-xl border-2 border-dashed border-border px-4 py-3 text-sm font-medium text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-muted/30 transition-all"
-                >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border-2 border-dashed border-current/40">
-                    <Plus className="size-4" />
-                  </div>
-                  Tambah warna
-                </button>
-              )}
-            </div>
+                <div className="space-y-2">
+                  {routesList.map((entry, idx) => (
+                    <div key={entry.id} className="group flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm hover:border-primary/30 transition-colors">
+                      {/* Swatch */}
+                      <label className="relative cursor-pointer shrink-0" title="Click to change colour">
+                        <div className="h-10 w-10 rounded-lg shadow-inner ring-2 ring-black/10 transition-transform group-hover:scale-105" style={{ background: entry.color }} />
+                        <input type="color" value={entry.color}
+                          onChange={e => {
+                            const c = e.target.value
+                            setRoutesList(prev => prev.map((r, i) => i === idx ? { ...r, color: c } : r))
+                            setRoutesListDirty(true)
+                          }}
+                          className="sr-only" />
+                      </label>
 
-            {/* ── Footer ── */}
-            <div className="mt-6 flex items-center justify-between">
-              <button
-                onClick={() => setRouteColors([...DEFAULT_ROUTE_COLORS])}
-                className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline transition-colors"
-              >
-                Reset ke default
-              </button>
-              <Button onClick={handleSaveRouteColors} disabled={!routeColorsDirty}>
-                <Save className="size-4 mr-2" />
-                Simpan Warna
-              </Button>
-            </div>
+                      {/* Code pill */}
+                      <div className="shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wide" style={{ background: entry.color, color: fgFor(entry.color) }}>
+                        {entry.code || entry.name}
+                      </div>
+
+                      {/* Route name */}
+                      <span className="flex-1 text-sm font-medium text-foreground truncate">{entry.name}</span>
+
+                      {/* Hex */}
+                      <span className="font-mono text-xs text-muted-foreground tracking-wide hidden sm:inline">{entry.color.toUpperCase()}</span>
+
+                      {/* Edit */}
+                      <label className="relative cursor-pointer flex h-8 items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors" title="Change colour">
+                        <Palette className="size-3.5" />
+                        <span className="hidden sm:inline">Edit</span>
+                        <input type="color" value={entry.color}
+                          onChange={e => {
+                            const c = e.target.value
+                            setRoutesList(prev => prev.map((r, i) => i === idx ? { ...r, color: c } : r))
+                            setRoutesListDirty(true)
+                          }}
+                          className="sr-only" />
+                      </label>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-6 flex items-center justify-between">
+                  <button
+                    onClick={() => {
+                      setRoutesList(prev => prev.map((r, i) => ({ ...r, color: DEFAULT_ROUTE_COLORS[i % DEFAULT_ROUTE_COLORS.length] })))
+                      setRoutesListDirty(true)
+                    }}
+                    className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline transition-colors"
+                  >
+                    Reset to default
+                  </button>
+                  <Button onClick={handleSaveRouteColorsList} disabled={!routesListDirty}>
+                    <Save className="size-4 mr-2" />
+                    Save Colours
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         )
       }
@@ -423,6 +449,38 @@ export function Settings({ section = "profile" }: { section?: SectionId }) {
           <div>
             <SectionHeader icon={<Lock className="size-4" />} title="Security" description="Tukar kata laluan akaun anda." />
             <div className="space-y-4">
+              {/* ImgBB API Key */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Globe className="size-4" />ImgBB API Key
+                </label>
+                <p className="text-xs text-muted-foreground">Used to upload images to ImgBB. Get your API key at <span className="font-mono text-foreground">api.imgbb.com</span>.</p>
+                <div className="relative">
+                  <Input
+                    type={showImgbbKey ? "text" : "password"}
+                    value={imgbbKey}
+                    onChange={e => setImgbbKey(e.target.value)}
+                    placeholder="Enter ImgBB API key"
+                    className="pr-10 font-mono text-sm"
+                  />
+                  <button
+                    onClick={() => setShowImgbbKey(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    type="button"
+                  >
+                    {showImgbbKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={handleSaveImgbbKey} disabled={!imgbbKey} variant={imgbbKeySaved ? "outline" : "default"}>
+                  {imgbbKeySaved ? <Check className="size-4 mr-2 text-green-500" /> : <Save className="size-4 mr-2" />}
+                  {imgbbKeySaved ? "Saved!" : "Save API Key"}
+                </Button>
+              </div>
+
+              <Separator />
+
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2"><Shield className="size-4" />Current Password</label>
                 <div className="relative">

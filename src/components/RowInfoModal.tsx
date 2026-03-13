@@ -366,18 +366,14 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
                   <div className="overflow-hidden rounded-xl border border-border">
                     <div className="transition-transform duration-300 ease-in-out" style={{ display: 'grid', gridTemplateColumns: '100% 100%', transform: pendingUrlLabel === 'Google Maps' ? 'translateX(-100%)' : 'translateX(0)' }}>
                       <button onClick={() => openUrl(gmapsUrl, "Google Maps")} className="w-full flex items-center gap-3 px-3 py-2.5 bg-muted/50 hover:bg-muted transition-all active:scale-[0.98] group">
-                        <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 shadow-sm border border-border/30">
-                          <img src="/Gmaps.png" alt="Google Maps" className="w-full h-full object-cover" />
-                        </div>
+                        <img src="/Gmaps.png" alt="Google Maps" className="w-9 h-9 rounded-xl object-cover shrink-0" />
                         <span className="flex-1 text-left text-sm font-semibold text-foreground">Google Maps</span>
                         <ChevronRight className="size-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors shrink-0" />
                       </button>
                       <div className="relative overflow-hidden bg-muted/50">
                         <div className="absolute inset-y-0 left-0 w-1" style={{ background: 'linear-gradient(to bottom,#4285F4,#34A853)' }} />
                         <div className="flex items-center gap-3 px-3 py-2.5 pl-5">
-                          <div className="w-9 h-9 rounded-xl overflow-hidden border border-border/30 shrink-0 shadow-sm">
-                            <img src="/Gmaps.png" alt="Google Maps" className="w-full h-full object-cover" />
-                          </div>
+                          <img src="/Gmaps.png" alt="Google Maps" className="w-9 h-9 rounded-xl object-cover shrink-0" />
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-semibold text-foreground leading-tight truncate">Open Google Maps?</p>
                             <p className="text-[10px] text-muted-foreground mt-0.5">Will leave this app</p>
@@ -397,18 +393,14 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
                   <div className="overflow-hidden rounded-xl border border-border">
                     <div className="transition-transform duration-300 ease-in-out" style={{ display: 'grid', gridTemplateColumns: '100% 100%', transform: pendingUrlLabel === 'Waze' ? 'translateX(-100%)' : 'translateX(0)' }}>
                       <button onClick={() => openUrl(wazeUrl, "Waze")} className="w-full flex items-center gap-3 px-3 py-2.5 bg-muted/50 hover:bg-muted transition-all active:scale-[0.98] group">
-                        <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 shadow-sm border border-border/30">
-                          <img src="/waze.png" alt="Waze" className="w-full h-full object-cover" />
-                        </div>
+                        <img src="/waze.png" alt="Waze" className="w-9 h-9 rounded-xl object-cover shrink-0" />
                         <span className="flex-1 text-left text-sm font-semibold text-foreground">Waze</span>
                         <ChevronRight className="size-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors shrink-0" />
                       </button>
                       <div className="relative overflow-hidden bg-muted/50">
                         <div className="absolute inset-y-0 left-0 w-1" style={{ background: 'linear-gradient(to bottom,#33CCFF,#05C8F0)' }} />
                         <div className="flex items-center gap-3 px-3 py-2.5 pl-5">
-                          <div className="w-9 h-9 rounded-xl overflow-hidden border border-border/30 shrink-0 shadow-sm">
-                            <img src="/waze.png" alt="Waze" className="w-full h-full object-cover" />
-                          </div>
+                          <img src="/waze.png" alt="Waze" className="w-9 h-9 rounded-xl object-cover shrink-0" />
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-semibold text-foreground leading-tight truncate">Open Waze?</p>
                             <p className="text-[10px] text-muted-foreground mt-0.5">Will leave this app</p>
@@ -427,18 +419,14 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
                 <div className="overflow-hidden rounded-xl border border-border">
                   <div className="transition-transform duration-300 ease-in-out" style={{ display: 'grid', gridTemplateColumns: '100% 100%', transform: pendingUrlLabel === 'FamilyMart' ? 'translateX(-100%)' : 'translateX(0)' }}>
                     <button onClick={() => openUrl(familyMartUrl, "FamilyMart")} className="w-full flex items-center gap-3 px-3 py-2.5 bg-muted/50 hover:bg-muted transition-all active:scale-[0.98] group">
-                      <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 shadow-sm border border-border/30">
-                        <img src="/FamilyMart.png" alt="FamilyMart" className="w-full h-full object-cover" />
-                      </div>
+                      <img src="/FamilyMart.png" alt="FamilyMart" className="w-9 h-9 rounded-xl object-cover shrink-0" />
                       <span className="flex-1 text-left text-sm font-semibold text-foreground">FamilyMart</span>
                       <ChevronRight className="size-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors shrink-0" />
                     </button>
                     <div className="relative overflow-hidden bg-muted/50">
                       <div className="absolute inset-y-0 left-0 w-1" style={{ background: 'linear-gradient(to bottom,#007140,#00A651)' }} />
                       <div className="flex items-center gap-3 px-3 py-2.5 pl-5">
-                        <div className="w-9 h-9 rounded-xl overflow-hidden border border-border/30 shrink-0 shadow-sm">
-                          <img src="/FamilyMart.png" alt="FamilyMart" className="w-full h-full object-cover" />
-                        </div>
+                        <img src="/FamilyMart.png" alt="FamilyMart" className="w-9 h-9 rounded-xl object-cover shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-semibold text-foreground leading-tight truncate">Open FamilyMart?</p>
                           <p className="text-[10px] text-muted-foreground mt-0.5">Will leave this app</p>
@@ -457,18 +445,14 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
                   <div className="overflow-hidden rounded-xl border border-border">
                     <div className="transition-transform duration-300 ease-in-out" style={{ display: 'grid', gridTemplateColumns: '100% 100%', transform: pendingUrlLabel === 'QR Code' ? 'translateX(-100%)' : 'translateX(0)' }}>
                       <button onClick={() => openUrl(qrCodeDestinationUrl, "QR Code")} className="w-full flex items-center gap-3 px-3 py-2.5 bg-muted/50 hover:bg-muted transition-all active:scale-[0.98] group">
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shrink-0 shadow-sm">
-                          <QrCode className="w-4 h-4 text-white" />
-                        </div>
+                        <QrCode className="w-9 h-9 text-orange-500 shrink-0 p-1" />
                         <span className="flex-1 text-left text-sm font-semibold text-foreground">QR Code</span>
                         <ChevronRight className="size-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors shrink-0" />
                       </button>
                       <div className="relative overflow-hidden bg-muted/50">
                         <div className="absolute inset-y-0 left-0 w-1" style={{ background: 'linear-gradient(to bottom,#f97316,#ea580c)' }} />
                         <div className="flex items-center gap-3 px-3 py-2.5 pl-5">
-                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shrink-0 shadow-sm">
-                            <QrCode className="w-4 h-4 text-white" />
-                          </div>
+                          <QrCode className="w-9 h-9 text-orange-500 shrink-0 p-1" />
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-semibold text-foreground leading-tight truncate">Open QR Code?</p>
                             <p className="text-[10px] text-muted-foreground mt-0.5">Will leave this app</p>
@@ -489,8 +473,8 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
                     onClick={() => { setQrDecodeStatus("idle"); setShowQRDialog(true) }}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border bg-muted/50 hover:bg-muted transition-all active:scale-[0.98] group"
                   >
-                    <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shrink-0 shadow-sm">
-                      <QrCode className="w-4 h-4 text-white" />
+                    <div className="relative w-9 h-9 flex items-center justify-center shrink-0">
+                      <QrCode className="w-5 h-5 text-orange-500" />
                       <span className="absolute -top-1 -right-1 bg-background rounded-full p-0.5 shadow-sm border border-border/40">
                         {qrCodeImageUrl ? <Pencil className="w-2.5 h-2.5" /> : <Plus className="w-2.5 h-2.5" />}
                       </span>

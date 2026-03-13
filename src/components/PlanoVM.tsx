@@ -466,12 +466,10 @@ export function PlanoVM() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 mb-1">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Layers className="size-4" />
-                </div>
+                <Layers className="size-4 shrink-0 text-primary" />
                 <h2 className="text-base font-semibold tracking-tight text-foreground">Plano VM</h2>
               </div>
-              <p className="ml-11 text-sm text-muted-foreground leading-relaxed">Visual Merchandising Planogram Manager</p>
+              <p className="ml-7 text-sm text-muted-foreground leading-relaxed">Visual Merchandising Planogram Manager</p>
             </div>
             {isEditMode && (
               <div className="flex justify-end gap-2">

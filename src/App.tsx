@@ -259,7 +259,7 @@ function HomePage({ onNavigate }: { onNavigate: (page: string) => void }) {
 function AppContent() {
   const [currentPage, setCurrentPage] = useState("home")
   const [isTransitioning, setIsTransitioning] = useState(false)
-  const [roosterViewMode, setRoosterViewMode] = useState<"week" | "day">("week")
+  const [roosterViewMode, setRoosterViewMode] = useState<"month" | "week">("month")
   const { open, openMobile, isMobile, toggleSidebar, setOpen, setOpenMobile } = useSidebar()
 
   const handlePageChange = (page: string) => {
@@ -283,12 +283,10 @@ function AppContent() {
           <div className="flex flex-col flex-1 min-h-0 gap-4 p-4 md:p-6">
             <div className="shrink-0">
               <div className="flex items-center gap-3 mb-1">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <MapPin className="size-4" />
-                </div>
+                <MapPin className="size-4 shrink-0 text-primary" />
                 <h2 className="text-base font-semibold tracking-tight text-foreground">Location</h2>
               </div>
-              <p className="ml-11 text-sm text-muted-foreground leading-relaxed">View and manage delivery records.</p>
+              <p className="ml-7 text-sm text-muted-foreground leading-relaxed">View and manage delivery records.</p>
               <Separator className="mt-4" />
             </div>
             <DeliveryTableDialog />
@@ -404,23 +402,14 @@ function AppContent() {
             </BreadcrumbList>
           </Breadcrumb>
 
-          {/* Rooster view toggle — Week / Day */}
+          {/* Rooster view toggle — cycles Month ↔ Week */}
           {currentPage === "rooster" && (
-            <div className="flex items-center gap-0.5 shrink-0 rounded-lg border border-border bg-muted/40 p-0.5">
-              {(["week", "day"] as const).map(v => (
-                <button
-                  key={v}
-                  onClick={() => setRoosterViewMode(v)}
-                  className={`h-7 px-3 text-xs font-semibold rounded-md capitalize transition-all ${
-                    roosterViewMode === v
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {v === "week" ? "Week" : "Day"}
-                </button>
-              ))}
-            </div>
+            <button
+              onClick={() => setRoosterViewMode(v => v === "month" ? "week" : "month")}
+              className="h-7 px-3 text-xs font-semibold rounded-lg border border-border bg-card hover:bg-muted transition-colors shrink-0"
+            >
+              {roosterViewMode === "month" ? "Month" : "Week"}
+            </button>
           )}
 
         </header>
