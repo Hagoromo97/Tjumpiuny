@@ -326,16 +326,20 @@ export function RouteList() {
   const [detailFullscreen, setDetailFullscreen] = useState(false)
   const [dialogView, setDialogView] = useState<'table' | 'map'>('table')
 
-  // Responsive card dimensions — shrink on narrow / short viewports
-  const [cardW, setCardW] = useState(() => Math.min(340, window.innerWidth - 40))
-  const [cardH, setCardH] = useState(() => Math.min(580, Math.max(400, window.innerHeight - 220)))
+  // Responsive card dimensions — measure the actual container so CSS zoom is handled correctly
+  const cardContainerRef = useRef<HTMLDivElement>(null)
+  const [cardW, setCardW] = useState(300)
+  const [cardH, setCardH] = useState(460)
   useEffect(() => {
-    const update = () => {
-      setCardW(Math.min(340, window.innerWidth - 40))
-      setCardH(Math.min(580, Math.max(400, window.innerHeight - 220)))
-    }
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
+    const el = cardContainerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(entries => {
+      const w = entries[0].contentRect.width
+      setCardW(Math.min(340, w))
+      setCardH(Math.min(580, Math.max(400, window.innerHeight / 1.2 - 220)))
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
   }, [])
 
 
@@ -1199,7 +1203,7 @@ export function RouteList() {
         </div>
 
         {/* ── Card list ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div ref={cardContainerRef} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         {displayedRoutes.map((route, routeIndex) => {
           const markerColor = route.color || routeColorPalette[routeIndex % routeColorPalette.length]
           const cardPanel = getCardPanel(route.id)
@@ -1233,17 +1237,24 @@ export function RouteList() {
                           onClick={e => { e.stopPropagation(); togglePin(route) }}
                           title={pinnedIds.has(route.id) ? "Unpin from Home" : "Pin to Home"}
                           style={{
-                            background: 'none', border: 'none', padding: 0,
+                            background: pinnedIds.has(route.id) ? `${markerColor}18` : 'hsl(var(--muted)/0.5)',
+                            border: `1px solid ${pinnedIds.has(route.id) ? markerColor + '55' : 'hsl(var(--border)/0.6)'}`,
+                            borderRadius: 10,
+                            padding: `${rowPadV} ${rowPadH}`,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            cursor: 'pointer', fontSize: '1rem', lineHeight: 1,
-                            opacity: pinnedIds.has(route.id) ? 1 : 0.4,
-                            transition: 'opacity 0.15s', gap: '0.3rem',
+                            cursor: 'pointer', fontSize: '0.85rem', lineHeight: 1,
+                            transition: 'all 0.18s', gap: '0.3rem',
                           }}
                         >
-                          {pinnedIds.has(route.id) ? '📌' : '📍'}
-                          <span style={{ fontSize: cardFontXs, fontWeight: 700, color: 'hsl(var(--muted-foreground))', letterSpacing: '0.03em' }}>
-                            {pinnedIds.has(route.id) ? 'Unpin' : 'Pin'}
-                          </span>
+                          <span style={{ fontSize: '0.9rem' }}>{pinnedIds.has(route.id) ? '📌' : '📍'}</span>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.1rem' }}>
+                            <span style={{ fontSize: cardFontXs, fontWeight: 700, color: pinnedIds.has(route.id) ? markerColor : 'hsl(var(--muted-foreground))', letterSpacing: '0.03em', lineHeight: 1 }}>
+                              {pinnedIds.has(route.id) ? 'Pinned' : 'Pin'}
+                            </span>
+                            <span style={{ fontSize: `${(0.57 * Math.min(1, cardW / 340)).toFixed(2)}rem`, color: 'hsl(var(--muted-foreground))', opacity: 0.75, lineHeight: 1, whiteSpace: 'nowrap' }}>
+                              {pinnedIds.has(route.id) ? 'Tap to unpin' : 'Show on Home'}
+                            </span>
+                          </div>
                         </button>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
                           <span style={{ fontSize: `${(1.0 * Math.min(1, cardW / 340)).toFixed(2)}rem`, fontWeight: 900, color: isDark ? '#c0c7d0' : markerColor, lineHeight: 1 }}>{route.deliveryPoints.length}</span>
