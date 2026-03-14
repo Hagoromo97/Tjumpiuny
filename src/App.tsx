@@ -11,7 +11,7 @@ const Rooster = lazy(() => import("@/components/Rooster").then(m => ({ default: 
 import { EditModeProvider } from "@/contexts/EditModeContext"
 import { DeviceProvider } from "@/contexts/DeviceContext"
 import { Toaster } from "sonner"
-import { Home, Package, Settings2, Images, ChevronDown, Truck, List, Layers, MapPin, ClipboardList, Users, Loader2 } from "lucide-react"
+import { Home, Package, Settings2, Images, ChevronDown, Truck, List, Layers, MapPin, ClipboardList, Users } from "lucide-react"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -54,13 +54,13 @@ const COLOR_LABELS: Record<string, string> = {
 function ColorPill({ color, size = "md" }: { color: string; size?: "sm" | "md" | "lg" }) {
   const label = COLOR_LABELS[color] ?? color
   const sizeClasses = size === "lg"
-    ? "w-10 h-10 text-[10px]"
+    ? "w-10 h-10"
     : size === "sm"
     ? "w-5 h-5"
-    : "w-7 h-7 text-[9px]"
+    : "w-7 h-7"
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full shrink-0 font-bold text-white shadow-md ring-2 ring-white/30 dark:ring-black/30 ${sizeClasses}`}
+      className={`inline-flex items-center justify-center rounded-full shrink-0 ${sizeClasses}`}
       style={{ backgroundColor: color }}
       title={label}
     />
@@ -72,14 +72,14 @@ function QuickActionCard({
   label,
   description,
   page,
-  gradient,
+  iconClass,
   onNavigate,
 }: {
   icon: React.ElementType
   label: string
   description: string
   page: string
-  gradient: string
+  iconClass?: string
   onNavigate: (page: string) => void
 }) {
   return (
@@ -87,9 +87,7 @@ function QuickActionCard({
       onClick={() => onNavigate(page)}
       className="group flex flex-col items-start gap-2.5 rounded-xl p-3.5 text-left border border-border bg-card hover:bg-muted/40 hover:border-border/80 active:scale-[0.97] transition-all duration-150"
     >
-      <div className={`flex items-center justify-center w-8 h-8 rounded-lg ${gradient} shadow-sm shrink-0`}>
-        <Icon className="size-3.5 text-white" />
-      </div>
+      <Icon className={`size-5 shrink-0 ${iconClass ?? "text-muted-foreground"}`} />
       <div className="min-w-0">
         <p className="text-sm font-semibold text-foreground tracking-tight leading-snug">{label}</p>
         <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{description}</p>
@@ -165,9 +163,9 @@ function HomePage({ onNavigate }: { onNavigate: (page: string) => void }) {
       <div>
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5 px-0.5">Quick Access</p>
         <div className="grid grid-cols-2 gap-3">
-          <QuickActionCard icon={ClipboardList} label="Route List" description="Manage vending routes" page="route-list" gradient="bg-gradient-to-br from-violet-500 to-violet-600" onNavigate={onNavigate} />
-          <QuickActionCard icon={MapPin}        label="Location"   description="Delivery records"       page="deliveries" gradient="bg-gradient-to-br from-emerald-500 to-emerald-600" onNavigate={onNavigate} />
-          <QuickActionCard icon={Users}         label="Rooster"    description="Team schedule"          page="rooster"    gradient="bg-gradient-to-br from-orange-500 to-orange-600"  onNavigate={onNavigate} />
+          <QuickActionCard icon={ClipboardList} label="Route List" description="Manage vending routes" page="route-list" iconClass="text-violet-500"  onNavigate={onNavigate} />
+          <QuickActionCard icon={MapPin}        label="Location"   description="Delivery records"       page="deliveries" iconClass="text-emerald-500" onNavigate={onNavigate} />
+          <QuickActionCard icon={Users}         label="Rooster"    description="Team schedule"          page="rooster"    iconClass="text-orange-500"  onNavigate={onNavigate} />
         </div>
       </div>
 
@@ -224,9 +222,7 @@ function HomePage({ onNavigate }: { onNavigate: (page: string) => void }) {
           className="group w-full flex items-center gap-3 px-3.5 py-3.5 hover:bg-muted/40 active:scale-[0.99] transition-all duration-150 text-left"
           onClick={() => setLegendOpen(v => !v)}
         >
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-violet-600 shadow-sm shrink-0">
-            <Layers className="size-3.5 text-white" />
-          </div>
+          <Layers className="size-5 text-violet-500 shrink-0" />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-foreground tracking-tight leading-snug">Colour Expired</p>
             <p className="text-xs text-muted-foreground mt-0.5 leading-snug">Colour codes for stock activities</p>
@@ -413,12 +409,7 @@ function AppContent() {
           )}
 
         </header>
-        <Suspense fallback={
-          <div className="flex flex-1 items-center justify-center gap-2 text-muted-foreground">
-            <Loader2 className="size-5 animate-spin" />
-            <span className="text-sm loading-text">Loading…</span>
-          </div>
-        }>
+        <Suspense fallback={null}>
           <div className={`flex flex-col flex-1 min-h-0 overflow-y-auto ${isTransitioning ? "page-fade-out" : "page-fade-in"}`}>
             {renderContent()}
           </div>

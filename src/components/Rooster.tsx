@@ -457,7 +457,16 @@ export function Rooster({ viewMode: viewModeProp = "month" }: { viewMode?: ViewM
           <button onClick={() => navigate(-1)} className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
             <ChevronLeft className="size-3.5" />
           </button>
-          <button onClick={goToday} className="h-7 px-2.5 text-[11px] font-semibold rounded-lg border border-border bg-card hover:bg-muted transition-colors">
+          <button
+            onClick={goToday}
+            className={`h-7 px-2.5 text-[11px] font-semibold rounded-lg transition-colors ${
+              (viewMode === "month"
+                ? currentDate.getFullYear() === today.getFullYear() && currentDate.getMonth() === today.getMonth()
+                : isSameDay(weekDates[0], getWeekDates(today)[0]))
+                ? "text-muted-foreground/40 cursor-default"
+                : "text-foreground hover:text-primary"
+            }`}
+          >
             Today
           </button>
           <button onClick={() => navigate(1)} className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">

@@ -111,6 +111,7 @@ export function DeliveryTableDialog() {
   const [filterDeliveries, setFilterDeliveries] = useState<Set<string>>(new Set())
   const [filterOpen, setFilterOpen]             = useState(false)
   const [filterTab, setFilterTab]               = useState<"routes" | "delivery">("routes")
+  const [sortOpen, setSortOpen]                 = useState(false)
 
   // Sort — default: code asc
   const [sortKey, setSortKey] = useState<SortKey>("code")
@@ -234,13 +235,6 @@ export function DeliveryTableDialog() {
     else { setSortKey(key); setSortDir("asc") }
   }
 
-  function SortIcon({ col }: { col: SortKey }) {
-    if (sortKey !== col) return <ChevronsUpDown className="inline w-3 h-3 ml-0.5 text-muted-foreground/40" />
-    return sortDir === "asc"
-      ? <ChevronUp className="inline w-3 h-3 ml-0.5 text-primary" />
-      : <ChevronDownIcon className="inline w-3 h-3 ml-0.5 text-primary" />
-  }
-
   const totalPoints = flat.length
 
   return (
@@ -319,13 +313,84 @@ export function DeliveryTableDialog() {
             </span>
           )}
         </button>
-        {(search || filterRoutes.size > 0 || filterDeliveries.size > 0) && (
+        {/* ── Sort button ───────────────────────────────────────────── */}
+        <div className="relative shrink-0">
           <button
-            onClick={() => { setSearch(""); setFilterRoutes(new Set()); setFilterDeliveries(new Set()) }}
-            className="text-xs text-muted-foreground hover:text-foreground underline shrink-0"
-          >Clear</button>
-        )}
+            onClick={() => setSortOpen(v => !v)}
+            className={cn(
+              "flex items-center gap-1.5 h-8 px-3 rounded-lg border text-xs font-medium transition-colors",
+              (sortKey !== "code" || sortDir !== "asc")
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-input bg-background text-muted-foreground hover:text-foreground hover:bg-muted/40"
+            )}
+          >
+            <ChevronsUpDown className="w-3.5 h-3.5" />
+            Sort
+          </button>
+          {sortOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setSortOpen(false)} />
+              <div className="absolute right-0 top-full mt-1 z-20 bg-popover border border-border rounded-xl shadow-lg w-40 py-1 overflow-hidden">
+                {([
+                  { key: "code" as SortKey,     label: "Code" },
+                  { key: "name" as SortKey,     label: "Name" },
+                  { key: "route" as SortKey,    label: "Route" },
+                  { key: "delivery" as SortKey, label: "Delivery" },
+                ]).map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => { handleSort(key); setSortOpen(false) }}
+                    className={cn(
+                      "w-full flex items-center justify-between px-3 py-2 text-xs hover:bg-muted/60 transition-colors",
+                      sortKey === key ? "text-primary font-semibold" : "text-foreground"
+                    )}
+                  >
+                    {label}
+                    {sortKey === key
+                      ? (sortDir === "asc"
+                          ? <ChevronUp className="w-3 h-3" />
+                          : <ChevronDownIcon className="w-3 h-3" />)
+                      : <ChevronsUpDown className="w-3 h-3 text-muted-foreground/40" />}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
+
+      {/* ── Active Filters Row ──────────────────────────────────────── */}
+      {(filterRoutes.size > 0 || filterDeliveries.size > 0) && (
+        <div className="flex flex-wrap items-center gap-1.5 px-4 py-2 border-b bg-muted/10 shrink-0">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0">Active:</span>
+          {[...filterRoutes].map(id => {
+            const label = routeOptions.find(([rid]) => rid === id)?.[1] ?? id
+            return (
+              <span key={id} className="inline-flex items-center gap-1 h-5 pl-2 pr-1 rounded-full bg-primary/10 text-primary text-[10px] font-medium border border-primary/20">
+                {label}
+                <button onClick={() => setFilterRoutes(prev => { const s = new Set(prev); s.delete(id); return s })} className="rounded-full hover:bg-primary/20 p-0.5 transition-colors">
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </span>
+            )
+          })}
+          {[...filterDeliveries].map(d => {
+            const item = DELIVERY_MAP.get(d)
+            return (
+              <span key={d} className="inline-flex items-center gap-1 h-5 pl-2 pr-1 rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400 text-[10px] font-medium border border-violet-500/20">
+                {item ? item.label : d}
+                <button onClick={() => setFilterDeliveries(prev => { const s = new Set(prev); s.delete(d); return s })} className="rounded-full hover:bg-violet-500/20 p-0.5 transition-colors">
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </span>
+            )
+          })}
+          <button
+            onClick={() => { setFilterRoutes(new Set()); setFilterDeliveries(new Set()) }}
+            className="ml-auto text-[10px] text-muted-foreground hover:text-foreground underline shrink-0"
+          >Clear all</button>
+        </div>
+      )}
 
       {/* ── Filter Modal ────────────────────────────────────────────── */}
       <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
@@ -423,18 +488,10 @@ export function DeliveryTableDialog() {
             <thead className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm text-xs uppercase tracking-wider text-muted-foreground font-semibold border-b border-border">
               <tr>
                 <th className="px-3 py-3 text-center w-10">#</th>
-                <th className="px-3 py-3 text-center cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort("route")}>
-                  Route <SortIcon col="route" />
-                </th>
-                <th className="px-3 py-3 text-center cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort("code")}>
-                  Code <SortIcon col="code" />
-                </th>
-                <th className="px-3 py-3 text-center cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort("name")}>
-                  Location Name <SortIcon col="name" />
-                </th>
-                <th className="px-3 py-3 text-center cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort("delivery")}>
-                  Delivery <SortIcon col="delivery" />
-                </th>
+                <th className="px-3 py-3 text-center">Route</th>
+                <th className="px-3 py-3 text-center">Code</th>
+                <th className="px-3 py-3 text-center">Location Name</th>
+                <th className="px-3 py-3 text-center">Delivery</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
