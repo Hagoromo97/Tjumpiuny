@@ -212,9 +212,9 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => { if (!o) { setPendingUrl(null); setPendingUrlLabel("") } onOpenChange(o) }}>
-      <DialogContent className="max-w-sm rounded-2xl p-0 overflow-hidden gap-0 border-border">
+      <DialogContent className="w-[92vw] max-w-sm rounded-2xl p-0 overflow-hidden flex flex-col gap-0">
         {/* Header */}
-        <DialogHeader className="px-5 pt-5 pb-4 border-b border-border bg-background">
+        <DialogHeader className="px-5 pt-5 pb-4 border-b border-border shrink-0 text-left">
           <div className="flex items-center gap-3">
             {/* Avatar: multi-image gallery / camera-slash placeholder */}
             {isEditMode ? (
@@ -265,21 +265,17 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
               <DialogTitle className="text-base font-bold text-foreground truncate">
                 {point.name}
               </DialogTitle>
-              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                <span className="text-xs text-muted-foreground">
-                  {point.delivery}
-                </span>
-                <span className="text-xs text-muted-foreground/50">·</span>
-                <span className="text-xs font-mono text-muted-foreground/80">
-                  {point.code}
-                </span>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-xs font-mono text-muted-foreground">{point.code}</span>
+                <span className="text-xs text-muted-foreground/60">•</span>
+                <span className="text-xs text-muted-foreground">{point.delivery}</span>
               </div>
             </div>
           </div>
         </DialogHeader>
 
         {/* Body */}
-        <div className="px-5 py-4 space-y-4 bg-background">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 px-5 py-4 space-y-4">
           {/* Information section */}
           <div>
             <div className="flex items-center justify-between mb-2.5">
@@ -853,7 +849,7 @@ export function RowInfoModal({ open, onOpenChange, point, isEditMode, onSave }: 
 
         {/* Footer — only in edit mode */}
         {isEditing && (
-          <div className="px-5 pb-5 flex gap-2 justify-end bg-background border-t border-border pt-3">
+          <div className="px-5 pb-5 flex gap-2 justify-end border-t border-border pt-3 shrink-0 bg-background">
             <Button variant="outline" size="sm" onClick={handleCancel}>Cancel</Button>
             <Button size="sm" onClick={handleSave}><Check className="size-3.5 mr-1" />Save</Button>
           </div>

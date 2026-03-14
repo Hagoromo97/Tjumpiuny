@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import bgDark from "../../icon/IMG_8601.jpeg"
 import bgLight from "../../icon/IMG_8602.jpeg"
-import { List, Info, Plus, Check, X, Edit2, Trash2, Search, Save, ArrowUp, ArrowDown, Truck, Loader2, SlidersHorizontal, CheckCircle2, MapPin, Route, AlertCircle, History, MapPinned, TableProperties, Shrink, Expand } from "lucide-react"
+import { List, Info, Plus, Check, X, Edit2, Trash2, Search, Save, ArrowUp, ArrowDown, Truck, Loader2, SlidersHorizontal, CheckCircle2, MapPin, Route, AlertCircle, History, MapPinned, TableProperties, Shrink, Expand, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { RowInfoModal } from "./RowInfoModal"
@@ -402,17 +402,6 @@ export function RouteList() {
     }
   }, [isLoading])
 
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('fcalendar_my_sorts')
-      if (stored) {
-        const parsed: SavedRowOrder[] = JSON.parse(stored)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setSavedRowOrders(parsed)
-        }
-      }
-    } catch {}
-  }, [])
 
   const currentRoute = routes.find(r => r.id === currentRouteId)
   const deliveryPoints = currentRoute?.deliveryPoints || []
@@ -517,7 +506,14 @@ export function RouteList() {
   const [draftColumns, setDraftColumns] = useState<ColumnDef[]>(DEFAULT_COLUMNS)
   const [savedColumns, setSavedColumns] = useState<ColumnDef[] | null>(null)
   const [savedSort, setSavedSort] = useState<SortType | undefined>(undefined)
-  const columnsDirty = useMemo(() => JSON.stringify(draftColumns) !== JSON.stringify(columns), [draftColumns, columns])
+  const [columnApplyScopeOpen, setColumnApplyScopeOpen] = useState(false)
+  const [routeColumnOverrides, setRouteColumnOverrides] = useState<Record<string, ColumnDef[]>>(() => {
+    try { const s = localStorage.getItem('fcalendar_route_columns'); return s ? JSON.parse(s) : {} } catch { return {} }
+  })
+  const columnsDirty = useMemo(
+    () => JSON.stringify(draftColumns) !== JSON.stringify(routeColumnOverrides[currentRouteId] ?? columns),
+    [draftColumns, columns, routeColumnOverrides, currentRouteId]
+  )
   const columnsHasSaved = savedColumns !== null
 
   // Row Customize
@@ -542,15 +538,18 @@ export function RouteList() {
   type SortType = { type: 'column'; key: ColumnKey; dir: 'asc' | 'desc' } | { type: 'saved'; id: string } | null
   const [activeSortConfig, setActiveSortConfig] = useState<SortType>(null)
   const [draftSort, setDraftSort] = useState<SortType>(null)
-  const [sortingTab, setSortingTab] = useState<'example' | 'my'>('example')
 
   const openSettings = (routeId: string) => {
     setCurrentRouteId(routeId)
-    setDraftColumns([...columns])
+    setDraftColumns([...(routeColumnOverrides[routeId] ?? columns)])
     setDraftRowOrder(buildRowEntries(routes.find(r => r.id === routeId)?.deliveryPoints || []))
     setDraftSort(activeSortConfig)
     setSettingsMenu('column')
-    setSortingTab('example')
+    try {
+      const stored = localStorage.getItem(`fcalendar_my_sorts_${routeId}`)
+      const parsed = stored ? JSON.parse(stored) : []
+      setSavedRowOrders(Array.isArray(parsed) ? parsed : [])
+    } catch { setSavedRowOrders([]) }
     setSettingsOpen(true)
   }
 
@@ -572,26 +571,31 @@ export function RouteList() {
   }
 
   const saveRowOrder = async () => {
-    const positions = draftRowOrder.map(r => parseInt(r.position))
+    const filled = draftRowOrder.filter(r => r.position !== '')
+    const positions = filled.map(r => parseInt(r.position))
     const hasDup = positions.length !== new Set(positions).size
-    const hasEmpty = draftRowOrder.some(r => r.position === '')
     if (hasDup) { setRowOrderError('Duplicate position numbers'); return }
-    if (hasEmpty) { setRowOrderError('All rows must have a position'); return }
     setRowSaving(true)
     setRowSaved(false)
     await new Promise(r => setTimeout(r, 700))
-    const sorted = [...draftRowOrder].sort((a, b) => parseInt(a.position) - parseInt(b.position))
-    const reindexed = sorted.map((r, i) => ({ ...r, position: String(i + 1) }))
-    setDraftRowOrder(reindexed)
+    // Sort the filled rows by their position input
+    const filledSorted = [...filled].sort((a, b) => parseInt(a.position) - parseInt(b.position))
+    // Sort the unfilled rows by code (natural sort)
+    const unfilled = draftRowOrder
+      .filter(r => r.position === '')
+      .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true, sensitivity: 'base' }))
+    // Merge: filled positions first, then unfilled appended at the end
+    const merged = [...filledSorted, ...unfilled].map((r, i) => ({ ...r, position: String(i + 1) }))
+    setDraftRowOrder(merged)
     setRowSaving(false)
     setRowSaved(true)
     setTimeout(() => setRowSaved(false), 1500)
     const id = `roworder-${Date.now()}`
     const label = `Order ${savedRowOrders.length + 1} (${new Date().toLocaleTimeString()})`
-    const newEntry = { id, label, order: reindexed.map(r => r.code) }
+    const newEntry = { id, label, order: merged.map(r => r.code) }
     setSavedRowOrders(prev => {
       const updated = [...prev, newEntry]
-      try { localStorage.setItem('fcalendar_my_sorts', JSON.stringify(updated)) } catch {}
+      try { localStorage.setItem(`fcalendar_my_sorts_${currentRouteId}`, JSON.stringify(updated)) } catch {}
       return updated
     })
     setRowOrderError('')
@@ -639,6 +643,9 @@ export function RouteList() {
     }
     return sortByActive(deliveryPoints)
   }, [deliveryPoints, activeSortConfig, savedRowOrders])
+
+  // Effective columns – per-route override wins, falls back to global columns
+  const effectiveColumns = routeColumnOverrides[currentRouteId] ?? columns
 
   // Compute distances for Km column
   // Default sort  → direct distance from map origin to each point (not cumulative)
@@ -1672,10 +1679,10 @@ export function RouteList() {
                                     />
                                   </th>
                                 )}
-                                {columns.filter(c => c.visible && c.key !== 'action' && !((c.key === 'lat' || c.key === 'lng') && !isEditMode)).map(col => (
+                                {effectiveColumns.filter(c => c.visible && c.key !== 'action' && !((c.key === 'lat' || c.key === 'lng') && !isEditMode)).map(col => (
                                   <th key={col.key} className="px-4 h-10 text-center text-[10px] font-bold uppercase tracking-wider" style={{ color: markerColor }}>{col.label}</th>
                                 ))}
-                                {columns.find(c => c.key === 'action' && c.visible) && (
+                                {effectiveColumns.find(c => c.key === 'action' && c.visible) && (
                                   <th className="px-4 h-10 text-center text-[10px] font-bold uppercase tracking-wider" style={{ color: markerColor }}>Action</th>
                                 )}
                           </tr>
@@ -1717,7 +1724,7 @@ export function RouteList() {
                                     />
                                   </td>
                                 )}
-                                {columns.filter(c => c.visible).map(col => {
+                                {effectiveColumns.filter(c => c.visible).map(col => {
                                   if (col.key === 'no') return (
                                     <td key="no" className="px-4 h-10 text-center">
                                       <span className="text-[11px] font-semibold tabular-nums" style={{ color: markerColor }}>
@@ -1885,7 +1892,7 @@ export function RouteList() {
                                   if (col.key === 'action') return null
                                   return null
                                 })}
-                                {columns.find(c => c.key === 'action' && c.visible) && (
+                                {effectiveColumns.find(c => c.key === 'action' && c.visible) && (
                                   <td className="px-3 h-9 text-center">
                                     <button
                                       className="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-150 hover:scale-110 active:scale-95"
@@ -2647,12 +2654,7 @@ export function RouteList() {
                       </div>
                       <span className="w-20 text-sm font-mono font-semibold text-center">{row.code}</span>
                       <span className="flex-1 text-sm text-center">{row.name}</span>
-                      <span className={`text-xs px-2.5 py-1 rounded-md font-semibold
-                        ${row.delivery === 'Daily' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : ''}
-                        ${row.delivery === 'Weekday' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : ''}
-                        ${row.delivery === 'Alt 1' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' : ''}
-                        ${row.delivery === 'Alt 2' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' : ''}
-                      `}>{row.delivery}</span>
+                      <span className="text-xs font-semibold text-muted-foreground shrink-0">{row.delivery}</span>
                     </div>
                   ))}
                 </div>
@@ -2661,60 +2663,60 @@ export function RouteList() {
 
             {/* ── SORTING ── */}
             {settingsMenu === 'sorting' && (
-              <div className="p-6 space-y-4">
-                {/* Sub-tabs */}
-                <div className="flex gap-1.5 p-1.5 bg-muted rounded-xl">
-                  {(['example', 'my'] as const).map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => setSortingTab(tab)}
-                      className={`flex-1 py-2 px-4 text-sm rounded-lg font-semibold transition-colors ${
-                        sortingTab === tab
-                          ? 'bg-background shadow-sm text-foreground'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      {tab === 'example' ? 'Example Sort List' : 'My Sort List'}
-                    </button>
-                  ))}
+              <div className="p-6 space-y-5">
+                {/* Sort by Column */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sort by Column</p>
+                  <div className="rounded-xl border border-border overflow-hidden bg-background">
+                    {([
+                      { key: 'code'     as ColumnKey, label: 'Code' },
+                      { key: 'name'     as ColumnKey, label: 'Name' },
+                      { key: 'delivery' as ColumnKey, label: 'Delivery' },
+                    ]).map(({ key, label }, i, arr) => {
+                      const isActive = draftSort?.type === 'column' && draftSort.key === key
+                      const dir = (isActive && draftSort.type === 'column') ? draftSort.dir : 'asc'
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => {
+                            if (isActive) {
+                              setDraftSort({ type: 'column', key, dir: dir === 'asc' ? 'desc' : 'asc' })
+                            } else {
+                              setDraftSort({ type: 'column', key, dir: 'asc' })
+                            }
+                          }}
+                          className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors${
+                            i < arr.length - 1 ? ' border-b border-border/50' : ''
+                          }${
+                            isActive
+                              ? ' text-primary font-semibold bg-primary/5'
+                              : ' text-foreground hover:bg-muted/60'
+                          }`}
+                        >
+                          <span>{label}</span>
+                          {isActive
+                            ? (dir === 'asc'
+                                ? <ChevronUp className="w-4 h-4" />
+                                : <ChevronDown className="w-4 h-4" />)
+                            : <ChevronsUpDown className="w-4 h-4 text-muted-foreground/40" />}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
 
-                {/* Example Sort List */}
-                {sortingTab === 'example' && (
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground mb-3">Predefined sort orders — visible to all users.</p>
-                    {[
-                      { key: 'name'     as ColumnKey, dir: 'asc'  as const, label: 'Name A → Z' },
-                      { key: 'name'     as ColumnKey, dir: 'desc' as const, label: 'Name Z → A' },
-                      { key: 'delivery' as ColumnKey, dir: 'asc'  as const, label: 'Delivery A → Z' },
-                      { key: 'delivery' as ColumnKey, dir: 'desc' as const, label: 'Delivery Z → A' },
-                    ].map(({ key, dir, label }) => (
-                      <button
-                        key={`${key}-${dir}`}
-                        onClick={() => setDraftSort({ type: 'column', key, dir })}
-                        className={`w-full py-2.5 px-4 text-sm rounded-lg border transition-colors text-left font-medium ${
-                          draftSort?.type === 'column' && draftSort.key === key && draftSort.dir === dir
-                            ? 'border-primary bg-primary/10 text-primary shadow-sm'
-                            : 'border-border hover:bg-muted hover:border-border/80'
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
                 {/* My Sort List */}
-                {sortingTab === 'my' && (
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground mb-3">Your saved row orders from Row Customize — stored privately in this browser.</p>
-                    {savedRowOrders.length === 0 ? (
-                      <div className="text-center py-12 text-muted-foreground text-sm">
-                        <p>No saved sort orders yet.</p>
-                        <p className="text-xs mt-2">Go to <strong>Row Customize</strong> tab and save a custom order.</p>
-                      </div>
-                    ) : (
-                      savedRowOrders.map((s) => (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">My Sort List</p>
+                  <p className="text-xs text-muted-foreground">Saved custom row orders — specific to this route only.</p>
+                  {savedRowOrders.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground text-sm bg-muted/20 rounded-xl border border-border/50">
+                      <p>No saved sort orders yet.</p>
+                      <p className="text-xs mt-1.5">Go to <strong>Row Customize</strong> and save a custom order.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {savedRowOrders.map((s) => (
                         <div key={s.id} className="flex items-center gap-2.5">
                           <button
                             onClick={() => setDraftSort({ type: 'saved', id: s.id })}
@@ -2730,7 +2732,7 @@ export function RouteList() {
                             onClick={() => {
                               setSavedRowOrders(prev => {
                                 const updated = prev.filter(r => r.id !== s.id)
-                                try { localStorage.setItem('fcalendar_my_sorts', JSON.stringify(updated)) } catch {}
+                                try { localStorage.setItem(`fcalendar_my_sorts_${currentRouteId}`, JSON.stringify(updated)) } catch {}
                                 return updated
                               })
                               if (draftSort?.type === 'saved' && draftSort.id === s.id) setDraftSort(null)
@@ -2741,15 +2743,15 @@ export function RouteList() {
                             <Trash2 className="size-4" />
                           </button>
                         </div>
-                      ))
-                    )}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
+                </div>
 
                 {draftSort && (
                   <button
                     onClick={() => setDraftSort(null)}
-                    className="text-sm text-muted-foreground hover:text-destructive flex items-center gap-1.5 pt-2"
+                    className="text-sm text-muted-foreground hover:text-destructive flex items-center gap-1.5 pt-1"
                   >
                     <X className="size-4" /> Clear sorting
                   </button>
@@ -2763,27 +2765,21 @@ export function RouteList() {
             {settingsMenu === 'column' && (
               <div className="flex items-center gap-3">
                 {columnsHasSaved && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-destructive hover:text-destructive border-destructive/40 hover:bg-destructive/10"
+                  <button
+                    className="text-xs font-medium text-destructive hover:text-destructive/80 transition-colors"
                     onClick={() => { setDraftColumns([...DEFAULT_COLUMNS]); setSavedColumns(null) }}
                   >
                     Reset to Default
-                  </Button>
+                  </button>
                 )}
                 <div className="flex-1" />
                 {columnsDirty && (
-                  <Button
-                    size="sm"
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                    onClick={() => {
-                      setColumns([...draftColumns])
-                      setSavedColumns([...draftColumns])
-                    }}
+                  <button
+                    className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
+                    onClick={() => setColumnApplyScopeOpen(true)}
                   >
                     Apply Changes
-                  </Button>
+                  </button>
                 )}
               </div>
             )}
@@ -2791,21 +2787,20 @@ export function RouteList() {
             {settingsMenu === 'row' && (
               <div className="flex items-center gap-3">
                 <div className="flex-1" />
-                {(rowPositionsDirty || rowOrderDirty) && !rowOrderError && (
-                  <Button
+                {draftRowOrder.some(r => r.position !== '') && !rowOrderError && (
+                  <button
                     disabled={rowSaving}
-                    size="sm"
-                    className="bg-green-600 hover:bg-green-700 text-white gap-2"
+                    className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors disabled:opacity-50 flex items-center gap-1.5"
                     onClick={saveRowOrder}
                   >
                     {rowSaving ? (
-                      <><Loader2 className="size-4 animate-spin" />Saving…</>
+                      <><Loader2 className="size-3.5 animate-spin" />Saving…</>
                     ) : rowSaved ? (
-                      <><Check className="size-4" />Saved!</>
+                      <><Check className="size-3.5" />Saved!</>
                     ) : (
                       'Save Order'
                     )}
-                  </Button>
+                  </button>
                 )}
               </div>
             )}
@@ -2813,20 +2808,17 @@ export function RouteList() {
             {settingsMenu === 'sorting' && (
               <div className="flex items-center gap-3">
                 {savedSort !== undefined && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-destructive hover:text-destructive border-destructive/40 hover:bg-destructive/10"
+                  <button
+                    className="text-xs font-medium text-destructive hover:text-destructive/80 transition-colors"
                     onClick={() => { setDraftSort(null); setActiveSortConfig(null); setSavedSort(undefined) }}
                   >
                     Reset to Default
-                  </Button>
+                  </button>
                 )}
                 <div className="flex-1" />
                 {JSON.stringify(draftSort) !== JSON.stringify(activeSortConfig) && (
-                  <Button
-                    size="sm"
-                    className="bg-green-600 hover:bg-green-700 text-white"
+                  <button
+                    className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
                     onClick={() => {
                       if (activeSortConfig?.type === 'saved' && draftSort?.type === 'column') {
                         setSortConflictPending(draftSort)
@@ -2838,10 +2830,79 @@ export function RouteList() {
                     }}
                   >
                     Apply Sorting
-                  </Button>
+                  </button>
                 )}
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Column Apply Scope Dialog */}
+      <Dialog open={columnApplyScopeOpen} onOpenChange={setColumnApplyScopeOpen}>
+        <DialogContent className="max-w-sm rounded-2xl p-0 overflow-hidden gap-0">
+          <DialogHeader className="px-5 pt-5 pb-4 border-b border-border">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center shrink-0">
+                <TableProperties className="size-5 text-primary" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold">Apply Column Settings</DialogTitle>
+                <DialogDescription className="text-xs mt-0.5">
+                  Where should this column layout be applied?
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="px-5 py-4 space-y-2.5">
+            {/* Apply for all routes */}
+            <button
+              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border border-border bg-background hover:bg-muted/60 transition-colors text-left group"
+              onClick={() => {
+                setColumns([...draftColumns])
+                setSavedColumns([...draftColumns])
+                // Clear all per-route overrides so global applies everywhere
+                setRouteColumnOverrides({})
+                try { localStorage.removeItem('fcalendar_route_columns') } catch {}
+                setColumnApplyScopeOpen(false)
+                setSettingsOpen(false)
+              }}
+            >
+              <Route className="size-5 text-blue-600 dark:text-blue-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold">Apply for All Routes</p>
+                <p className="text-xs text-muted-foreground leading-snug mt-0.5">
+                  Use this column layout across every route table
+                </p>
+              </div>
+              <ChevronDown className="size-4 text-muted-foreground/40 -rotate-90 shrink-0" />
+            </button>
+            {/* Only this route */}
+            <button
+              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border border-border bg-background hover:bg-muted/60 transition-colors text-left group"
+              onClick={() => {
+                setRouteColumnOverrides(prev => {
+                  const updated = { ...prev, [currentRouteId]: [...draftColumns] }
+                  try { localStorage.setItem('fcalendar_route_columns', JSON.stringify(updated)) } catch {}
+                  return updated
+                })
+                setSavedColumns([...draftColumns])
+                setColumnApplyScopeOpen(false)
+                setSettingsOpen(false)
+              }}
+            >
+              <MapPin className="size-5 text-violet-600 dark:text-violet-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold">Only This Route</p>
+                <p className="text-xs text-muted-foreground leading-snug mt-0.5">
+                  Apply only to <span className="font-semibold text-foreground">{currentRoute?.name ?? 'this route'}</span>
+                </p>
+              </div>
+              <ChevronDown className="size-4 text-muted-foreground/40 -rotate-90 shrink-0" />
+            </button>
+          </div>
+          <div className="px-5 pb-5 flex justify-end border-t border-border pt-3">
+            <Button variant="ghost" size="sm" onClick={() => setColumnApplyScopeOpen(false)}>Cancel</Button>
           </div>
         </DialogContent>
       </Dialog>
