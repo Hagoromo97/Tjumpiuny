@@ -1225,11 +1225,11 @@ export function RouteList() {
                     {/* Header content */}
                     <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                       {/* Route name */}
-                      <h3 style={{ margin: 0, fontSize: cardFontLg, fontWeight: 800, color: 'hsl(var(--foreground))', lineHeight: 1.25, wordBreak: 'break-word', textAlign: 'center' }}>Route {route.name}</h3>
+                      <h3 style={{ margin: 0, marginTop: '0.5rem', fontSize: cardFontLg, fontWeight: 800, color: 'hsl(var(--foreground))', lineHeight: 1.25, wordBreak: 'break-word', textAlign: 'center' }}>Route {route.name}</h3>
                       {/* Code + shift — tight under name */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                        <span style={{ fontSize: cardFontSm, color: 'hsl(var(--muted-foreground))' }}>{route.code}</span>
-                        <span style={{ fontSize: cardFontSm, fontWeight: 700, color: route.shift === 'PM' ? '#c2410c' : route.shift === 'AM' ? '#1e3a8a' : 'hsl(var(--muted-foreground))' }}>{route.shift}</span>
+                        <span style={{ fontSize: cardFontSm, fontWeight: 700, color: 'hsl(var(--muted-foreground))' }}>{route.code}</span>
+                        <span style={{ fontSize: cardFontSm, fontWeight: 800, color: route.shift === 'PM' ? '#c2410c' : route.shift === 'AM' ? '#1e3a8a' : 'hsl(var(--muted-foreground))' }}>{route.shift}</span>
                       </div>
                       {/* Pin (left) + stops (right) — bottom row */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: `${(0.6 * Math.min(1, cardW / 340)).toFixed(2)}rem` }}>
@@ -1607,7 +1607,7 @@ export function RouteList() {
                     }`}
                     style={detailFullscreen
                       ? {}
-                      : { width: '92vw', maxWidth: '56rem', height: 'calc(6 * 44px + 96px)', borderRadius: '0.75rem' }
+                      : { width: '92vw', maxWidth: '56rem', height: 'calc(5 * 44px + 96px)', borderRadius: '0.75rem' }
                     }
                   >
                     {/* Header */}
