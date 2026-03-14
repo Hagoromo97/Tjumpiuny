@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
-import { RefreshCw, Loader2, AlertCircle, AlertTriangle, Search, X, ChevronUp, ChevronDown as ChevronDownIcon, ChevronsUpDown, Filter, Save, Check } from "lucide-react"
+import { RefreshCw, Loader2, AlertCircle, AlertTriangle, Search, X, ChevronUp, ChevronDown as ChevronDownIcon, ChevronsUpDown, Filter, Save, Check, Columns2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -37,6 +37,16 @@ interface FlatPoint extends DeliveryPoint {
 
 type SortKey = "code" | "name" | "delivery" | "route"
 type SortDir = "asc" | "desc"
+
+// ─── Column definitions ───────────────────────────────────────────────────────
+const ALL_COLUMNS = [
+  { key: "no",       label: "#",             description: "Row number" },
+  { key: "route",    label: "Route",         description: "Route name" },
+  { key: "code",     label: "Code",          description: "Location code" },
+  { key: "name",     label: "Location Name", description: "Delivery point name" },
+  { key: "delivery", label: "Delivery",      description: "Delivery schedule" },
+] as const
+type ColumnKey = typeof ALL_COLUMNS[number]["key"]
 
 // ─── Delivery option definitions ─────────────────────────────────────────────
 interface DeliveryItem {
@@ -110,8 +120,19 @@ export function DeliveryTableDialog() {
   const [filterRoutes, setFilterRoutes]         = useState<Set<string>>(new Set())
   const [filterDeliveries, setFilterDeliveries] = useState<Set<string>>(new Set())
   const [filterOpen, setFilterOpen]             = useState(false)
-  const [filterTab, setFilterTab]               = useState<"routes" | "delivery">("routes")
+  const [filterTab, setFilterTab]               = useState<"routes" | "delivery" | "columns">("routes")
   const [sortOpen, setSortOpen]                 = useState(false)
+  const [visibleColumns, setVisibleColumns]     = useState<Set<ColumnKey>>(new Set(["no", "route", "code", "name", "delivery"]))
+
+  const toggleColumn = (key: ColumnKey) =>
+    setVisibleColumns(prev => {
+      if (prev.size === 1 && prev.has(key)) return prev // keep at least one
+      const s = new Set(prev)
+      s.has(key) ? s.delete(key) : s.add(key)
+      return s
+    })
+
+  const hiddenColCount = ALL_COLUMNS.length - visibleColumns.size
 
   // Sort — default: code asc
   const [sortKey, setSortKey] = useState<SortKey>("code")
@@ -300,16 +321,16 @@ export function DeliveryTableDialog() {
           onClick={() => setFilterOpen(true)}
           className={cn(
             "relative flex items-center gap-1.5 h-8 px-3 rounded-lg border text-xs font-medium transition-colors shrink-0",
-            (filterRoutes.size > 0 || filterDeliveries.size > 0)
+            (filterRoutes.size > 0 || filterDeliveries.size > 0 || hiddenColCount > 0)
               ? "border-primary bg-primary/10 text-primary"
               : "border-input bg-background text-muted-foreground hover:text-foreground hover:bg-muted/40"
           )}
         >
           <Filter className="w-3.5 h-3.5" />
           Filter
-          {(filterRoutes.size + filterDeliveries.size) > 0 && (
+          {(filterRoutes.size + filterDeliveries.size + hiddenColCount) > 0 && (
             <span className="ml-0.5 flex items-center justify-center w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold">
-              {filterRoutes.size + filterDeliveries.size}
+              {filterRoutes.size + filterDeliveries.size + hiddenColCount}
             </span>
           )}
         </button>
@@ -400,16 +421,20 @@ export function DeliveryTableDialog() {
           </DialogHeader>
           {/* Tabs */}
           <div className="flex border-b border-border justify-center px-4">
-            {(["routes", "delivery"] as const).map(tab => (
+            {(["routes", "delivery", "columns"] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setFilterTab(tab)}
                 className={cn(
-                  "px-5 py-2.5 text-xs font-semibold capitalize border-b-2 transition-colors",
+                  "px-4 py-2.5 text-xs font-semibold capitalize border-b-2 transition-colors",
                   filterTab === tab ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
                 )}
               >
-                {tab === "routes" ? `Routes${filterRoutes.size > 0 ? ` (${filterRoutes.size})` : ""}` : `Delivery${filterDeliveries.size > 0 ? ` (${filterDeliveries.size})` : ""}`}
+                {tab === "routes"
+                  ? `Routes${filterRoutes.size > 0 ? ` (${filterRoutes.size})` : ""}`
+                  : tab === "delivery"
+                  ? `Delivery${filterDeliveries.size > 0 ? ` (${filterDeliveries.size})` : ""}`
+                  : <span className="flex items-center gap-1"><Columns2 className="w-3 h-3" />Columns{hiddenColCount > 0 ? ` (${hiddenColCount})` : ""}</span>}
               </button>
             ))}
           </div>
@@ -453,13 +478,43 @@ export function DeliveryTableDialog() {
                 </button>
               )
             })}
+            {filterTab === "columns" && (
+              <>
+                <p className="text-[10px] text-muted-foreground px-1 pb-1">Toggle which columns are visible in the table.</p>
+                {ALL_COLUMNS.map(col => {
+                  const visible = visibleColumns.has(col.key)
+                  return (
+                    <button
+                      key={col.key}
+                      onClick={() => toggleColumn(col.key)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-xs text-left transition-colors",
+                        visible ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-muted/40 text-muted-foreground"
+                      )}
+                    >
+                      <span className={cn("flex shrink-0 items-center justify-center w-4 h-4 rounded border", visible ? "bg-primary border-primary" : "border-muted-foreground/40")}>
+                        {visible && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
+                      </span>
+                      <span className="font-medium">{col.label}</span>
+                      <span className="ml-auto text-[10px] text-muted-foreground">{col.description}</span>
+                    </button>
+                  )
+                })}
+              </>
+            )}
           </div>
           {/* Footer */}
           <div className="flex items-center justify-between px-4 py-3 border-t border-border">
             <button
-              onClick={() => { setFilterRoutes(new Set()); setFilterDeliveries(new Set()) }}
+              onClick={() => {
+                if (filterTab === "columns") {
+                  setVisibleColumns(new Set(["no", "route", "code", "name", "delivery"]))
+                } else {
+                  setFilterRoutes(new Set()); setFilterDeliveries(new Set())
+                }
+              }}
               className="text-xs text-muted-foreground hover:text-foreground underline"
-            >Clear all</button>
+            >{filterTab === "columns" ? "Show all" : "Clear all"}</button>
             <Button size="sm" onClick={() => setFilterOpen(false)} className="h-7 text-xs px-4">Done</Button>
           </div>
         </DialogContent>
@@ -487,17 +542,17 @@ export function DeliveryTableDialog() {
           <table className="border-collapse text-sm whitespace-nowrap min-w-max w-full">
             <thead className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm text-xs uppercase tracking-wider text-muted-foreground font-semibold border-b border-border">
               <tr>
-                <th className="px-3 py-3 text-center w-10">#</th>
-                <th className="px-3 py-3 text-center">Route</th>
-                <th className="px-3 py-3 text-center">Code</th>
-                <th className="px-3 py-3 text-center">Location Name</th>
-                <th className="px-3 py-3 text-center">Delivery</th>
+                {visibleColumns.has("no")       && <th className="px-3 py-3 text-center w-10">#</th>}
+                {visibleColumns.has("route")    && <th className="px-3 py-3 text-center">Route</th>}
+                {visibleColumns.has("code")     && <th className="px-3 py-3 text-center">Code</th>}
+                {visibleColumns.has("name")     && <th className="px-3 py-3 text-center">Location Name</th>}
+                {visibleColumns.has("delivery") && <th className="px-3 py-3 text-center">Delivery</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {displayed.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-16 text-muted-foreground">
+                  <td colSpan={visibleColumns.size} className="text-center py-16 text-muted-foreground">
                     No results found.
                   </td>
                 </tr>
@@ -512,25 +567,35 @@ export function DeliveryTableDialog() {
                         : idx % 2 === 0 ? "hover:bg-muted/40" : "bg-muted/20 hover:bg-muted/40"
                     )}
                   >
-                    <td className="px-3 py-3 text-center text-muted-foreground w-10 text-xs tabular-nums">{idx + 1}</td>
-                    <td className="px-3 py-3 text-center">
-                      <span className="text-xs text-foreground">{pt.routeName}</span>
-                    </td>
-                    <td className="px-3 py-3 text-center">
-                      <span className={cn("font-mono text-xs font-medium", pt._dupCode && "text-amber-600 dark:text-amber-400 font-bold")}>
-                        {pt.code}
-                      </span>
-                      {pt._dupCode && <AlertTriangle className="inline w-3 h-3 ml-1 text-amber-500" />}
-                    </td>
-                    <td className="px-3 py-3 text-center">
-                      <span className={cn("text-xs", pt._dupName && "text-rose-600 dark:text-rose-400 font-semibold")}>
-                        {pt.name}
-                      </span>
-                      {pt._dupName && <AlertTriangle className="inline w-3 h-3 ml-1 text-rose-500" />}
-                    </td>
-                    <td className="px-3 py-3 text-center text-xs">
-                      {effectiveDelivery(pt)}
-                    </td>
+                    {visibleColumns.has("no") && (
+                      <td className="px-3 py-3 text-center text-muted-foreground w-10 text-xs tabular-nums">{idx + 1}</td>
+                    )}
+                    {visibleColumns.has("route") && (
+                      <td className="px-3 py-3 text-center">
+                        <span className="text-xs text-foreground">{pt.routeName}</span>
+                      </td>
+                    )}
+                    {visibleColumns.has("code") && (
+                      <td className="px-3 py-3 text-center">
+                        <span className={cn("font-mono text-xs font-medium", pt._dupCode && "text-amber-600 dark:text-amber-400 font-bold")}>
+                          {pt.code}
+                        </span>
+                        {pt._dupCode && <AlertTriangle className="inline w-3 h-3 ml-1 text-amber-500" />}
+                      </td>
+                    )}
+                    {visibleColumns.has("name") && (
+                      <td className="px-3 py-3 text-center">
+                        <span className={cn("text-xs", pt._dupName && "text-rose-600 dark:text-rose-400 font-semibold")}>
+                          {pt.name}
+                        </span>
+                        {pt._dupName && <AlertTriangle className="inline w-3 h-3 ml-1 text-rose-500" />}
+                      </td>
+                    )}
+                    {visibleColumns.has("delivery") && (
+                      <td className="px-3 py-3 text-center text-xs">
+                        {effectiveDelivery(pt)}
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

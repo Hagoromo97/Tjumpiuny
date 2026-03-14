@@ -507,10 +507,10 @@ export function Rooster({ viewMode: viewModeProp = "month" }: { viewMode?: ViewM
             )}
           </div>
         ) : (
-          <table className="border-collapse" style={{ width: "max-content", minWidth: "100%", tableLayout: "fixed" }}>
+          <table className="border-collapse" style={{ width: "max-content", minWidth: "100%", tableLayout: "auto" }}>
             <colgroup>
-              <col style={{ width: "164px" }} />
-              {colDates.map(d => <col key={toDateKey(d)} style={{ width: "140px" }} />)}
+              <col style={{ minWidth: "140px" }} />
+              {colDates.map(d => <col key={toDateKey(d)} style={{ minWidth: "90px" }} />)}
             </colgroup>
             <thead>
               <tr>
@@ -560,9 +560,9 @@ export function Rooster({ viewMode: viewModeProp = "month" }: { viewMode?: ViewM
                     <td className="sticky left-0 z-10 bg-card border-b border-r border-border p-3 align-top">
                       <div className="flex items-start">
                         <div className="min-w-0 flex-1">
-                          <p className="text-[11px] font-bold text-foreground leading-tight truncate">{resource.name}</p>
+                          <p className="text-[11px] font-bold text-foreground leading-tight whitespace-nowrap">{resource.name}</p>
                           {resource.role && (
-                            <p className="text-[9px] text-muted-foreground leading-tight mt-0.5 truncate">{resource.role}</p>
+                            <p className="text-[9px] text-muted-foreground leading-tight mt-0.5 whitespace-nowrap">{resource.role}</p>
                           )}
                           <span
                             className="inline-block mt-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-full leading-none"
@@ -898,11 +898,11 @@ function ShiftBlock({
       <div className="h-[3px] w-full" style={{ backgroundColor: shift.color }} />
       <div className="px-2 py-1.5 flex flex-col items-center text-center">
         {isEditMode ? (
-          <div className="text-[9px] font-semibold leading-tight whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: shift.color }}>
+          <div className="text-[9px] font-semibold leading-tight whitespace-nowrap" style={{ color: shift.color }}>
             {startLabel} – {endLabel}
           </div>
         ) : (
-          <div className="text-[10px] font-bold leading-tight whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: shift.color }}>
+          <div className="text-[10px] font-bold leading-tight whitespace-nowrap" style={{ color: shift.color }}>
             {shift.title}{shiftType ? ` — ${shiftType}` : ""}
           </div>
         )}
