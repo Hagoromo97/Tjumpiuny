@@ -522,14 +522,6 @@ export function RouteList() {
     pts.map((p) => ({ code: p.code, position: '', name: p.name, delivery: p.delivery }))
   const [draftRowOrder, setDraftRowOrder] = useState<RowOrderEntry[]>([])
   const [savedRowOrders, setSavedRowOrders] = useState<SavedRowOrder[]>([])
-  const rowOrderDirty = useMemo(() => {
-    const orig = buildRowEntries(deliveryPoints)
-    return JSON.stringify(draftRowOrder.map(r => r.code)) !== JSON.stringify(orig.map(r => r.code))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draftRowOrder, deliveryPoints])
-  const rowPositionsDirty = useMemo(() =>
-    draftRowOrder.some((r, i) => r.position !== String(i + 1)),
-  [draftRowOrder])
   const [rowOrderError, setRowOrderError] = useState<string>("")
   const [rowSaving, setRowSaving] = useState(false)
   const [rowSaved, setRowSaved] = useState(false)
