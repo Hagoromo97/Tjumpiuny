@@ -1168,8 +1168,8 @@ export function RouteList() {
 
         </div>
 
-        {/* ── Card grid ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
+        {/* ── Card list ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         {displayedRoutes.map((route, routeIndex) => {
           const markerColor = route.color || routeColorPalette[routeIndex % routeColorPalette.length]
           const cardPanel = getCardPanel(route.id)
