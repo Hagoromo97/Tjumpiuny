@@ -6,8 +6,6 @@ import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { RowInfoModal } from "./RowInfoModal"
 import { DeliveryMap } from "@/components/DeliveryMap"
-import { appendChangelog } from "./RouteNotesModal"
-import type { RouteChangelog } from "./RouteNotesModal"
 import { useEditMode } from "@/contexts/EditModeContext"
 import {
   Dialog,
@@ -29,6 +27,29 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+
+interface RouteChangelog {
+  id: string
+  text: string
+  created_at: string
+}
+
+async function appendChangelog(routeId: string, description: string): Promise<void> {
+  try {
+    await fetch('/api/route-notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: crypto.randomUUID(),
+        routeId,
+        type: 'changelog',
+        text: description,
+      }),
+    })
+  } catch {
+    // silently fail
+  }
+}
 
 interface DeliveryPoint {
   code: string
@@ -1545,7 +1566,7 @@ export function RouteList() {
                     }`}
                     style={detailFullscreen
                       ? {}
-                      : { width: '92vw', maxWidth: '56rem', height: 'calc(7 * 44px + 96px)', borderRadius: '0.75rem' }
+                      : { width: '92vw', maxWidth: '56rem', height: 'calc(6 * 44px + 96px)', borderRadius: '0.75rem' }
                     }
                   >
                     {/* Header */}
