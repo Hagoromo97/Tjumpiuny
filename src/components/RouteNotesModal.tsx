@@ -299,13 +299,13 @@ export function RouteNotesModal({ open, onOpenChange, routeId, routeName, routeI
         <div className="h-px bg-border/50 mx-4 mt-2 shrink-0" />
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <div className={isFullscreen ? "flex-1 overflow-hidden min-h-0" : "overflow-hidden"}>
           {loading ? (
             <div className="flex items-center justify-center py-16">
               <Loader2 className="size-5 animate-spin text-muted-foreground" />
             </div>
           ) : tab === "notes" ? (
-            <div className="flex flex-col h-full">
+            <div className={`flex flex-col ${isFullscreen ? "h-full" : ""}`}>
               {/* Note list */}
               <div className={`overflow-y-auto px-4 py-3 space-y-2 ${isFullscreen ? "flex-1 min-h-0" : "max-h-[320px]"}`}>
                 {notes.length === 0 ? (
@@ -359,7 +359,7 @@ export function RouteNotesModal({ open, onOpenChange, routeId, routeName, routeI
             </div>
           ) : tab === "changelog" ? (
             // changelog
-            <div className={`px-4 py-3 space-y-1 ${isFullscreen ? "" : "max-h-[320px] overflow-y-auto"}` }>
+            <div className={`px-4 py-3 space-y-1 ${isFullscreen ? "h-full overflow-y-auto" : "max-h-[320px] overflow-y-auto"}`}>
               {changelog.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
                   <History className="size-8 opacity-25" />
