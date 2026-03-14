@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { StickyNote, History, Plus, Trash2, Clock, Loader2, CheckCircle2, AlertCircle, Info, PlusCircle, MinusCircle, ArrowRightLeft, Pencil, Palette, Tag, ArrowUpDown, Sparkles } from "lucide-react"
+import { StickyNote, History, Plus, Trash2, Clock, Loader2, CheckCircle2, AlertCircle, Info, PlusCircle, MinusCircle, ArrowRightLeft, Pencil, Palette, Tag, ArrowUpDown, Sparkles, Maximize2, Minimize2 } from "lucide-react"
 import { toast } from "sonner"
 
 export interface RouteNote {
@@ -138,12 +138,18 @@ export function RouteNotesModal({ open, onOpenChange, routeId, routeName, routeI
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Reset tab when initialTab changes (e.g. opened via Info button)
   useEffect(() => {
     if (open) setTab(initialTab ?? "notes")
   }, [open, initialTab])
+
+  // Reset fullscreen when dialog closes
+  useEffect(() => {
+    if (!open) setIsFullscreen(false)
+  }, [open])
 
   // Load from API when modal opens
   useEffect(() => {
@@ -220,9 +226,25 @@ export function RouteNotesModal({ open, onOpenChange, routeId, routeName, routeI
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm p-0 gap-0 overflow-hidden rounded-2xl flex flex-col" style={{ maxHeight: "85dvh" }}>
+      <DialogContent
+        className={`p-0 gap-0 overflow-hidden flex flex-col transition-all duration-200 ${
+          isFullscreen
+            ? "!left-0 !top-0 !translate-x-0 !translate-y-0 !w-screen !max-w-none !h-dvh !rounded-none"
+            : "max-w-sm rounded-2xl"
+        }`}
+        style={isFullscreen ? {} : { maxHeight: "85dvh" }}
+      >
         <DialogHeader className="px-4 pt-4 pb-0 shrink-0">
-          <DialogTitle className="text-sm font-semibold truncate">{routeName}</DialogTitle>
+          <div className="flex items-center justify-between gap-2">
+            <DialogTitle className="text-sm font-semibold truncate">{routeName}</DialogTitle>
+            <button
+              onClick={() => setIsFullscreen(f => !f)}
+              className="p-1 rounded-md text-muted-foreground hover:bg-muted transition-colors shrink-0"
+              aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+            >
+              {isFullscreen ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
+            </button>
+          </div>
         </DialogHeader>
 
         {/* Tabs */}
@@ -285,7 +307,7 @@ export function RouteNotesModal({ open, onOpenChange, routeId, routeName, routeI
           ) : tab === "notes" ? (
             <div className="flex flex-col h-full">
               {/* Note list */}
-              <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+              <div className={`overflow-y-auto px-4 py-3 space-y-2 ${isFullscreen ? "flex-1 min-h-0" : "max-h-[320px]"}`}>
                 {notes.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
                     <StickyNote className="size-8 opacity-25" />
@@ -337,7 +359,7 @@ export function RouteNotesModal({ open, onOpenChange, routeId, routeName, routeI
             </div>
           ) : tab === "changelog" ? (
             // changelog
-            <div className="px-4 py-3 space-y-1">
+            <div className={`px-4 py-3 space-y-1 ${isFullscreen ? "" : "max-h-[320px] overflow-y-auto"}` }>
               {changelog.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
                   <History className="size-8 opacity-25" />
