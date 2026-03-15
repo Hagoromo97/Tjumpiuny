@@ -1212,7 +1212,7 @@ export function RouteList() {
             {/* ── Route Card ── */}
             <div style={{ width: cardW, height: cardH, borderRadius: 22, overflow: 'hidden', position: 'relative', background: 'hsl(var(--card))', border: `1.5px solid ${markerColor}55`, boxShadow: `0 4px 24px ${markerColor}18, 0 0 0 1px ${markerColor}18` }}>
               {/* Background image – subtle */}
-              <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${isDark ? bgDark : bgLight})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: isDark ? 0.55 : 0.35, zIndex: 0, pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${isDark ? bgDark : bgLight})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: isDark ? 0.42 : 0.26, zIndex: 0, pointerEvents: 'none' }} />
               {/* Sliding wrapper */}
               <div style={{ position: 'relative', zIndex: 1, display: 'flex', width: cardW * 3, height: '100%', transform: cardPanel.edit ? `translateX(-${cardW * 2}px)` : cardPanel.info ? `translateX(-${cardW}px)` : 'translateX(0)', transition: 'transform 0.38s cubic-bezier(0.4,0,0.2,1)' }}>
 
@@ -1330,7 +1330,7 @@ export function RouteList() {
                               <Popover key={type} open={isOpen} onOpenChange={open => setBadgePopover(open ? popKey : null)}>
                                 <PopoverTrigger asChild>
                                   <span onClick={() => setBadgePopover(isOpen ? null : popKey)} style={{ display: 'inline-flex', alignItems: 'center', fontSize: badgeFs, fontWeight: 700, color: '#5a6070', background: 'linear-gradient(135deg, #e8eaed, #c8cdd6)', padding: '2px 9px', borderRadius: '6px', border: '1px solid #b0b8c4', flexShrink: 0, letterSpacing: '0.03em', textShadow: '0 1px 0 #fff8', cursor: 'pointer', opacity: isOpen ? 0.75 : 1, transition: 'opacity 0.15s' }}>
-                                    {type}&nbsp;<span style={{ opacity: 0.55, fontWeight: 500 }}>{pts.length}</span>
+                                    {type}&nbsp;<span style={{ opacity: 0.55, fontWeight: 500 }}>&bull;</span>&nbsp;<span style={{ opacity: 0.75, fontWeight: 600 }}>{pts.length}</span>
                                   </span>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-64 p-0 z-50 backdrop-blur-xl bg-background/90 dark:bg-card/90 border border-border/60 shadow-2xl rounded-2xl overflow-hidden" align="center" side="top">
@@ -1615,9 +1615,9 @@ export function RouteList() {
                       <div style={{ height: 3, background: `linear-gradient(90deg, ${markerColor} 0%, ${markerColor}66 100%)` }} />
                       <div className="px-5 py-3 flex items-center gap-3">
                         {(route.name + " " + route.code).toLowerCase().includes("kl")
-                          ? <img src="/kl-flag.png" className="object-cover shadow-sm ring-1 ring-black/10 dark:ring-white/10 shrink-0" style={{ width: 48, height: 30, borderRadius: 4 }} alt="KL" />
+                          ? <img src="/kl-flag.png" className="object-cover shadow-sm ring-1 ring-black/10 dark:ring-white/10 shrink-0" style={{ width: 42, height: 26, borderRadius: 4 }} alt="KL" />
                           : (route.name + " " + route.code).toLowerCase().includes("sel")
-                          ? <img src="/selangor-flag.png" className="object-cover shadow-sm ring-1 ring-black/10 dark:ring-white/10 shrink-0" style={{ width: 48, height: 30, borderRadius: 4 }} alt="Selangor" />
+                          ? <img src="/selangor-flag.png" className="object-cover shadow-sm ring-1 ring-black/10 dark:ring-white/10 shrink-0" style={{ width: 42, height: 26, borderRadius: 4 }} alt="Selangor" />
                           : (
                             <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${markerColor}25`, boxShadow: `0 0 0 1.5px ${markerColor}50` }}>
                               <Truck className="size-4" style={{ color: markerColor }} />
@@ -1659,10 +1659,10 @@ export function RouteList() {
                       </div>
                     ) : (
                           <table className="border-collapse text-[12px] whitespace-nowrap min-w-max w-full text-center">
-                            <thead className="sticky top-0 z-10 backdrop-blur-sm" style={{ background: `color-mix(in srgb, ${markerColor} 10%, hsl(var(--muted)) 90%)` }}>
-                              <tr className="border-b-2" style={{ borderBottomColor: `${markerColor}70` }}>
+                            <thead className="sticky top-0 z-10 backdrop-blur-sm" style={{ background: 'hsl(var(--background)/0.92)' }}>
+                              <tr>
                                 {isEditMode && (
-                                  <th className="px-4 h-10 text-center w-12">
+                                  <th className="px-4 h-10 text-center w-12 bg-background/95 border-b border-border/70">
                                     <input
                                       type="checkbox"
                                       checked={selectedRows.length === deliveryPoints.length && deliveryPoints.length > 0}
@@ -1672,10 +1672,10 @@ export function RouteList() {
                                   </th>
                                 )}
                                 {effectiveColumns.filter(c => c.visible && c.key !== 'action' && !((c.key === 'lat' || c.key === 'lng') && !isEditMode)).map(col => (
-                                  <th key={col.key} className="px-4 h-10 text-center text-[10px] font-bold uppercase tracking-wider" style={{ color: markerColor }}>{col.label}</th>
+                                  <th key={col.key} className="px-4 h-10 text-center text-[10px] font-bold uppercase tracking-wider bg-background/95 border-b border-border/70" style={{ color: 'hsl(var(--foreground)/0.72)' }}>{col.label}</th>
                                 ))}
                                 {effectiveColumns.find(c => c.key === 'action' && c.visible) && (
-                                  <th className="px-4 h-10 text-center text-[10px] font-bold uppercase tracking-wider" style={{ color: markerColor }}>Action</th>
+                                  <th className="px-4 h-10 text-center text-[10px] font-bold uppercase tracking-wider bg-background/95 border-b border-border/70" style={{ color: 'hsl(var(--foreground)/0.72)' }}>Action</th>
                                 )}
                           </tr>
                         </thead>
@@ -1695,16 +1695,13 @@ export function RouteList() {
                             return (
                               <tr key={point.code} className={`border-b transition-colors duration-100 ${
                                 isEditingThisRow
-                                  ? 'border-primary/50 shadow-[inset_3px_0_0_hsl(var(--primary)/0.7)]'
+                                  ? 'border-primary/45 bg-primary/10'
                                   : hasRowPending
                                   ? 'border-amber-400/40 dark:border-amber-500/30 bg-amber-50/40 dark:bg-amber-900/10'
                                   : isActive
-                                  ? index % 2 === 0 ? 'border-border/40' : 'border-border/40 bg-muted/30'
-                                  : 'border-border/30 opacity-35'
+                                  ? index % 2 === 0 ? 'border-border/50 bg-background hover:bg-muted/30' : 'border-border/50 bg-muted/20 hover:bg-muted/35'
+                                  : 'border-border/40 bg-muted/30 text-muted-foreground/80 hover:bg-muted/45'
                               }`}
-                              style={isEditingThisRow ? { background: `${markerColor}10` } : isActive && !hasRowPending ? { } : undefined}
-                              onMouseEnter={e => { if (!isEditingThisRow && !hasRowPending) (e.currentTarget as HTMLElement).style.background = `${markerColor}0d` }}
-                              onMouseLeave={e => { if (!isEditingThisRow && !hasRowPending) (e.currentTarget as HTMLElement).style.background = '' }}
                               >
                                 {isEditMode && (
                                   <td className="px-4 h-12 text-center">
@@ -1887,11 +1884,11 @@ export function RouteList() {
                                 {effectiveColumns.find(c => c.key === 'action' && c.visible) && (
                                   <td className="px-3 h-9 text-center">
                                     <button
-                                      className="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-150 hover:scale-110 active:scale-95"
-                                      style={isActive
-                                        ? { color: '#16a34a' }
-                                        : { color: '#dc2626' }
-                                      }
+                                      className={`inline-flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-150 hover:scale-110 active:scale-95 ${
+                                        isActive
+                                          ? 'text-emerald-600 hover:bg-emerald-500/10'
+                                          : 'text-rose-500 hover:bg-rose-500/10'
+                                      }`}
                                       onClick={() => { setSelectedPoint(point); setInfoModalOpen(true) }}
                                     >
                                       <Info className="size-3.5" />
@@ -2537,7 +2534,7 @@ export function RouteList() {
 
       {/* ── Settings Modal ──────────────────────────────────────────── */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="w-[92vw] max-w-lg h-[80vh] max-h-[640px] overflow-hidden flex flex-col gap-0 p-0">
+        <DialogContent className="w-[92vw] max-w-lg h-[74vh] max-h-[600px] overflow-hidden flex flex-col gap-0 p-0">
           <div className="px-6 pt-5 pb-0 shrink-0">
             <DialogHeader className="text-center items-center">
               <DialogTitle className="text-sm font-bold">Table Settings</DialogTitle>
@@ -2567,7 +2564,7 @@ export function RouteList() {
             {/* ── COLUMN CUSTOMIZE ── */}
             {settingsMenu === 'column' && (
               <div className="p-6 space-y-4">
-                <p className="text-sm text-muted-foreground">Toggle visibility and reorder columns.</p>
+                <p className="text-[13px] text-muted-foreground">Toggle visibility and reorder columns.</p>
                 <div className="space-y-2.5">
                   {draftColumns.map((col, idx) => {
                     if ((col.key === 'lat' || col.key === 'lng') && !isEditMode) return null
@@ -2583,7 +2580,7 @@ export function RouteList() {
                         }
                         className="w-4 h-4 cursor-pointer accent-primary"
                       />
-                      <span className="flex-1 text-sm font-medium">{col.label}</span>
+                      <span className="flex-1 text-[13px] font-medium">{col.label}</span>
                       <div className="flex gap-1.5">
                         <Button
                           variant="ghost"
@@ -2614,16 +2611,16 @@ export function RouteList() {
             {/* ── ROW CUSTOMIZE ── */}
             {settingsMenu === 'row' && (
               <div className="p-6 space-y-4">
-                <p className="text-sm text-muted-foreground">Input a position number to reorder rows. No duplicates allowed.</p>
+                <p className="text-[13px] text-muted-foreground">Input a position number to reorder rows. No duplicates allowed.</p>
                 {rowOrderError && (
-                  <p className="text-sm text-destructive font-medium">{rowOrderError}</p>
+                  <p className="text-[13px] text-destructive font-medium">{rowOrderError}</p>
                 )}
                 <div className={`space-y-2.5 relative transition-opacity duration-300 ${rowSaving ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
                   {rowSaving && (
                     <div className="absolute inset-0 flex items-center justify-center z-10">
                       <div className="bg-background/90 backdrop-blur-sm rounded-xl px-5 py-3 flex items-center gap-2.5 shadow-lg border border-border">
                         <Loader2 className="size-5 animate-spin text-primary" />
-                        <span className="text-sm font-semibold text-foreground">Sorting rows…</span>
+                        <span className="text-[13px] font-semibold text-foreground">Sorting rows…</span>
                       </div>
                     </div>
                   )}
@@ -2635,7 +2632,7 @@ export function RouteList() {
                           onChange={(e) => handleRowPositionChange(row.code, e.target.value)}
                           onFocus={(e) => e.target.select()}
                           placeholder="#"
-                          className={`w-16 text-center text-sm font-semibold ${
+                          className={`w-16 text-center text-[13px] font-semibold ${
                             row.position !== '' && draftRowOrder.filter(r => r.position !== '' && r.position === row.position).length > 1
                               ? 'border-destructive focus-visible:ring-destructive/30'
                               : ''
@@ -2644,8 +2641,8 @@ export function RouteList() {
                           maxLength={3}
                         />
                       </div>
-                      <span className="w-20 text-sm font-mono font-semibold text-center">{row.code}</span>
-                      <span className="flex-1 text-sm text-center">{row.name}</span>
+                      <span className="w-20 text-[13px] font-mono font-semibold text-center">{row.code}</span>
+                      <span className="flex-1 text-[13px] text-center">{row.name}</span>
                       <span className="text-xs font-semibold text-muted-foreground shrink-0">{row.delivery}</span>
                     </div>
                   ))}
